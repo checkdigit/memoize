@@ -1,0 +1,52 @@
+{
+  "name": "@checkdigit/library-template",
+  "version": "0.0.1",
+  "description": "A short description of the intended use of the library",
+  "typings": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "prettier": "@checkdigit/prettier-config",
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/checkdigit/library-template.git"
+  },
+  "author": "Check Digit, LLC",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/checkdigit/library-template/issues"
+  },
+  "homepage": "https://github.com/checkdigit/library-template#readme",
+  "devDependencies": {
+    "@checkdigit/eslint-config": "7.5.0",
+    "@checkdigit/jest-config": "^2.1.0",
+    "@checkdigit/prettier-config": "^3.2.0",
+    "@checkdigit/typescript-config": "^3.2.0",
+    "rimraf": "^4.1.2"
+  },
+  "scripts": {
+    "postversion": "git push && git push --tags",
+    "lint": "eslint -f unix --ext .js,.ts 'src/**/*.ts'",
+    "lint:fix": "eslint -f unix --ext .js,.ts 'src/**/*.ts' --fix",
+    "prettier": "prettier --ignore-path .gitignore --list-different .",
+    "prettier:fix": "prettier --ignore-path .gitignore --write .",
+    "test": "npm run ci:compile && npm run ci:test && npm run ci:lint && npm run ci:style",
+    "ci:compile": "tsc --noEmit",
+    "ci:test": "jest --coverage=false",
+    "ci:coverage": "jest --coverage=true --passWithNoTests",
+    "ci:lint": "npm run lint",
+    "ci:style": "npm run prettier"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@checkdigit/eslint-config"
+    ]
+  },
+  "jest": {
+    "preset": "@checkdigit/jest-config"
+  }
+}
