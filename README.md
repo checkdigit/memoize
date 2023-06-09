@@ -1,36 +1,23 @@
-# Check Digit < Insert name > Library
+# Memoize
 
-The Check Digit < Insert Name > library is a library for Check Digit services to deal with [ short description about what the library does]
+Copyright (c) 2021-2023 [Check Digit, LLC](https://checkdigit.com)
 
-Features:
+Memoize is a light-weight utility library used by Check Digit services for memoization purposes.
 
-- Feature 1
-- Feature 2
-- Feature3
-- (...)
+### Install
 
-### Installing
-
-`npm install @checkdigit/< Insert name >`
+```
+$ npm install @checkdigit/memoize
+```
 
 ### Use
 
-It could be. i.e.
-
 ```
-import * as insertName from '@checkdigit/< Insert name >';
+import { memoize } from '@checkdigit/memoize';
 
-const someVariable = insertName();
-
+const value = memoize((_param: _paramType) => _asyncFunction(_paramValue));
 ```
 
-Or if it can be called as a script. i.e.
+## License
 
-```
-insert-name -b src/package.json
-```
-
-### Links
-
-- Company website: [your.website.url]
-- Npm: [npm.url]
+MIT
