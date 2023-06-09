@@ -15,7 +15,9 @@ $ npm install @checkdigit/memoize
 ```
 import { memoize } from '@checkdigit/memoize';
 
-const value = memoize((_param: _paramType) => _asyncFunction(_paramValue));
+const promise = memoize((_param: _paramType) => _asyncFunction(_param));
+
+const value = await promise(_paramValue);
 ```
 
 ## License
