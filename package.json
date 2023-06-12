@@ -27,7 +27,7 @@
   ],
   "prettier": "@checkdigit/prettier-config",
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "repository": {
     "type": "git",
