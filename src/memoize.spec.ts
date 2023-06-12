@@ -1,13 +1,13 @@
 // memoize.spec.ts
 
 /*
- * Copyright (c) 2021-2023 Check Digit, LLC
+ * Copyright (c) 2023 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
 
 import { strict as assert } from 'node:assert';
-import memoize from './memoize';
+import memoize from './index';
 
 describe('memoize', () => {
   it('returns the same value as the underlying function', async () => {

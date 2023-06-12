@@ -1,8 +1,11 @@
 # Memoize
 
-Copyright (c) 2021-2023 [Check Digit, LLC](https://checkdigit.com)
+Copyright (c) 2023 [Check Digit, LLC](https://checkdigit.com)
 
-Memoize is a light-weight utility library used by Check Digit services for memoization purposes.
+Memoize is a small async function used by Check Digit services for memoizing promises with cache eviction on reject.
+The promise being cached guarantees the underlying function is called at most once for a given set of arguments, unless
+the promise is rejected. If the promise is rejected, it will be removed from the memoize cache.  
+This allows the function to be retried.
 
 ### Install
 
