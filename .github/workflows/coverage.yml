@@ -9,9 +9,9 @@ env:
   CI: true
 
 jobs:
-  branchBuild:
+  coverage:
     runs-on: ubuntu-latest
-    name: Branch Build
+    name: Coverage
     strategy:
       matrix:
         node-version: [18.x]
@@ -24,10 +24,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci --ignore-scripts
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Calculate Code Coverage
         run: npm run ci:coverage
       - name: Create Coverage Report for base branch
@@ -36,8 +34,6 @@ jobs:
           git fetch
           git checkout origin/${{ github.event.pull_request.base.ref }}
           npm ci --ignore-scripts && npm run ci:coverage
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Post Coverage Report
         uses: checkdigit/github-actions/coverage-reporter@main
         with:

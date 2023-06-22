@@ -1,45 +1,52 @@
 {
-  "name": "@checkdigit/library-template",
-  "version": "0.0.1",
-  "description": "A short description of the intended use of the library",
-  "typings": "./dist/index.d.ts",
-  "main": "./dist/index.js",
-  "prettier": "@checkdigit/prettier-config",
-  "engines": {
-    "node": ">=16"
+  "name": "@checkdigit/memoize",
+  "version": "1.0.0",
+  "description": "Memoize is a small async function for memoizing promises with cache eviction on reject",
+  "exports": {
+    ".": {
+      "types": "./dist-types/index.d.ts",
+      "require": "./dist-cjs/index.cjs",
+      "import": "./dist-mjs/index.mjs",
+      "default": "./dist-mjs/index.mjs"
+    }
   },
   "files": [
-    "dist"
+    "src",
+    "dist-types",
+    "dist-cjs",
+    "dist-mjs",
+    "!src/**/*.test.ts",
+    "!src/**/*.spec.ts",
+    "!dist-types/**/*.test.d.ts",
+    "!dist-types/**/*.spec.d.ts",
+    "!dist-cjs/**/*.test.cjs",
+    "!dist-cjs/**/*.spec.cjs",
+    "!dist-mjs/**/*.test.mjs",
+    "!dist-mjs/**/*.spec.mjs",
+    "SECURITY.md"
   ],
+  "prettier": "@checkdigit/prettier-config",
+  "engines": {
+    "node": ">=18"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/checkdigit/library-template.git"
+    "url": "git+https://github.com/checkdigit/memoize.git"
   },
   "author": "Check Digit, LLC",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/checkdigit/library-template/issues"
+    "url": "https://github.com/checkdigit/memoize/issues"
   },
-  "homepage": "https://github.com/checkdigit/library-template#readme",
+  "homepage": "https://github.com/checkdigit/memoize#readme",
   "devDependencies": {
-    "@checkdigit/eslint-config": "7.5.0",
-    "@checkdigit/jest-config": "^2.1.0",
-    "@checkdigit/prettier-config": "^3.2.0",
-    "@checkdigit/typescript-config": "^3.2.0",
-    "rimraf": "^4.1.2"
-  },
-  "scripts": {
-    "postversion": "git push && git push --tags",
-    "lint": "eslint -f unix --ext .js,.ts 'src/**/*.ts'",
-    "lint:fix": "eslint -f unix --ext .js,.ts 'src/**/*.ts' --fix",
-    "prettier": "prettier --ignore-path .gitignore --list-different .",
-    "prettier:fix": "prettier --ignore-path .gitignore --write .",
-    "test": "npm run ci:compile && npm run ci:test && npm run ci:lint && npm run ci:style",
-    "ci:compile": "tsc --noEmit",
-    "ci:test": "jest --coverage=false",
-    "ci:coverage": "jest --coverage=true --passWithNoTests",
-    "ci:lint": "npm run lint",
-    "ci:style": "npm run prettier"
+    "@checkdigit/eslint-config": "^7.8.0",
+    "@checkdigit/jest-config": "^2.3.0",
+    "@checkdigit/prettier-config": "^3.4.0",
+    "@checkdigit/typescript-config": "^3.5.0",
+    "@types/uuid": "^9.0.2",
+    "rimraf": "^5.0.1",
+    "uuid": "^9.0.0"
   },
   "eslintConfig": {
     "extends": [
@@ -48,5 +55,21 @@
   },
   "jest": {
     "preset": "@checkdigit/jest-config"
+  },
+  "scripts": {
+    "prepublishOnly": "npm run build:dist-types && npm run build:dist-cjs && npm run build:dist-esm",
+    "build:dist-types": "rimraf dist-types && npx builder --type=types --outDir=dist-types",
+    "build:dist-cjs": "rimraf dist-cjs && npx builder --type=commonjs --sourceMap --outDir=dist-cjs",
+    "build:dist-esm": "rimraf dist-esm && npx builder --type=module --sourceMap --outDir=dist-mjs",
+    "prettier": "prettier --ignore-path .gitignore --list-different .",
+    "prettier:fix": "prettier --ignore-path .gitignore --write .",
+    "lint:fix": "eslint -f unix --ext .ts,.mts src --fix",
+    "lint": "eslint -f unix --ext .ts,.mts src",
+    "test": "npm run ci:compile && npm run ci:test && npm run ci:lint && npm run ci:style",
+    "ci:compile": "tsc --noEmit",
+    "ci:test": "jest --coverage=false",
+    "ci:coverage": "jest --coverage=true",
+    "ci:lint": "npm run lint",
+    "ci:style": "npm run prettier"
   }
 }

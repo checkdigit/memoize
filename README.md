@@ -1,36 +1,28 @@
-# Check Digit < Insert name > Library
+# Memoize
 
-The Check Digit < Insert Name > library is a library for Check Digit services to deal with [ short description about what the library does]
+Copyright (c) 2023 [Check Digit, LLC](https://checkdigit.com)
 
-Features:
+Memoize is a small async function for memoizing promises with cache eviction on reject.
+The promise being cached guarantees the underlying function is called at most once for a given set of arguments, unless
+the promise is rejected. If the promise is rejected, it will be removed from the memoize cache.  
+This allows the function to be retried.
 
-- Feature 1
-- Feature 2
-- Feature3
-- (...)
+### Install
 
-### Installing
-
-`npm install @checkdigit/< Insert name >`
+```
+$ npm install @checkdigit/memoize
+```
 
 ### Use
 
-It could be. i.e.
-
 ```
-import * as insertName from '@checkdigit/< Insert name >';
+import memoize from '@checkdigit/memoize';
 
-const someVariable = insertName();
+const promise = memoize((_param: _paramType) => _asyncFunction(_param));
 
-```
-
-Or if it can be called as a script. i.e.
-
-```
-insert-name -b src/package.json
+const value = await promise(_paramValue);
 ```
 
-### Links
+## License
 
-- Company website: [your.website.url]
-- Npm: [npm.url]
+MIT
