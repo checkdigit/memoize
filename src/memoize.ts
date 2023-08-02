@@ -6,8 +6,6 @@
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
 
-import type { URL } from 'node:url';
-
 // arguments must be stringify-able
 export type Argument = string | number | boolean | null | Date | URL | Argument[] | { [key: string]: Argument };
 
@@ -19,7 +17,7 @@ export type Argument = string | number | boolean | null | Date | URL | Argument[
  * @param function_ function to memoize
  */
 export default <Return, Arguments extends Argument[]>(
-  function_: (...arguments_: Arguments) => Promise<Return>
+  function_: (...arguments_: Arguments) => Promise<Return>,
 ): ((...arguments_: Arguments) => Promise<Return>) => {
   const cache = new Map<string, Promise<Return>>();
   return (...arguments_) => {
