@@ -22,6 +22,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Check Label
+        uses: checkdigit/github-actions/check-label@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check Imports
         uses: checkdigit/github-actions/check-imports@main
       - name: Install dependencies
@@ -56,6 +60,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Check Label
+        uses: checkdigit/github-actions/check-label@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check Imports
         uses: checkdigit/github-actions/check-imports@main
       - name: Install dependencies
