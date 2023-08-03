@@ -1,7 +1,7 @@
 {
   "name": "@checkdigit/memoize",
   "version": "1.0.0",
-  "description": "Memoize is a small async function for memoizing promises with cache eviction on reject",
+  "description": "Memoizing promises with cache eviction on reject",
   "exports": {
     ".": {
       "types": "./dist-types/index.d.ts",

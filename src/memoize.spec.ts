@@ -109,4 +109,23 @@ describe('memoize', () => {
     ]);
     assert.equal(count, 1);
   });
+
+  it.only('returns same promise for identical object arguments even if keys in different orders', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList)}`;
+    });
+    const promise1 = memoizedFunction({ a: 2, b: 1 }, 2, { a: 1, b: { x: 'a', y: 'b' } }, { b: 2, c: 3, a: [2, 1] });
+    const promise2 = memoizedFunction({ b: 1, a: 2 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 });
+    const promise3 = memoizedFunction({ b: 1, a: 2 }, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 }, 2);
+    assert.equal(promise1, promise2);
+    assert.notEqual(promise1, promise3);
+    assert.deepEqual(await Promise.all([promise1, promise2]), [
+      '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
+      '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
+    ]);
+    assert.deepEqual(await promise3, '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]');
+    assert.equal(count, 2);
+  });
 });
