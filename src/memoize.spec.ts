@@ -156,7 +156,7 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
-  it('supports undefined vs null arguments', async () => {
+  it('supports unique undefined vs null arguments', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
@@ -168,7 +168,7 @@ describe('memoize', () => {
     const promise4 = memoizedFunction(1);
     const promise5 = memoizedFunction(1, 'undefined');
 
-    // even though JSON.stringify converts undefined to null, the memoize function will still recognize the difference
+    // even though JSON.stringify converts undefined to null, memoize will still recognize the difference
     assert.notEqual(promise1, promise2);
     assert.notEqual(promise2, promise3);
     assert.notEqual(promise3, promise4);
@@ -181,7 +181,7 @@ describe('memoize', () => {
     assert.equal(count, 5);
   });
 
-  it('support symbol arguments', async () => {
+  it('support unique symbol arguments', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
@@ -194,7 +194,7 @@ describe('memoize', () => {
     const promise3 = memoizedFunction(symbol1, symbol2);
     const promise4 = memoizedFunction(symbol1, symbol1);
 
-    // even though JSON.stringify converts symbols to null, the memoize function will still recognize the difference
+    // even though JSON.stringify converts symbols to null, memoize will still recognize the difference
     assert.notEqual(promise1, promise2);
     assert.equal(promise1, promise3);
     assert.notEqual(promise3, promise4);
@@ -205,13 +205,14 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
-  it('throw error if passed a function argument', async () => {
+  it('throw TypeError if passed a function argument', async () => {
     let count = 0;
-    const memoizedFunction = memoize(async (...argumentList) => {
+    const memoizedFunction = memoize(async (_: unknown) => {
       count += 1;
-      return `${JSON.stringify(argumentList)}`;
     });
+    // Typescript won't allow this to happen, but Javascript will
     assert.throws(() => memoizedFunction(memoizedFunction as unknown as string), {
+      name: 'TypeError',
       message: 'Function arguments cannot be memoized',
     });
     assert.equal(count, 0);
