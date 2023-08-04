@@ -1,7 +1,7 @@
 {
   "name": "@checkdigit/memoize",
   "version": "1.1.0",
-  "description": "Memoizing promises with cache eviction on reject",
+  "description": "Memoizing async functions with cache eviction on reject",
   "exports": {
     ".": {
       "types": "./dist-types/index.d.ts",
@@ -63,8 +63,8 @@
     "build:dist-esm": "rimraf dist-esm && npx builder --type=module --sourceMap --outDir=dist-mjs",
     "prettier": "prettier --ignore-path .gitignore --list-different .",
     "prettier:fix": "prettier --ignore-path .gitignore --write .",
-    "lint:fix": "eslint -f unix --ext .ts,.mts src --fix",
-    "lint": "eslint -f unix --ext .ts,.mts src",
+    "lint:fix": "eslint --ignore-path .gitignore -f unix --ext .ts,.mts src --fix",
+    "lint": "eslint --ignore-path .gitignore -f unix --ext .ts,.mts src",
     "test": "npm run ci:compile && npm run ci:test && npm run ci:lint && npm run ci:style",
     "ci:compile": "tsc --noEmit",
     "ci:test": "jest --coverage=false",

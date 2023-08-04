@@ -7,6 +7,7 @@
  */
 
 import { strict as assert } from 'node:assert';
+
 import memoize from './index';
 
 describe('memoize', () => {
@@ -110,7 +111,7 @@ describe('memoize', () => {
     assert.equal(count, 1);
   });
 
-  it('returns same promise for identical object arguments even if keys in different orders', async () => {
+  it('returns same promise for identical object arguments even if keys are in different order', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
