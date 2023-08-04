@@ -39,12 +39,12 @@ export default <Arguments extends Argument[], Return>(
   const seed = Math.random().toString();
 
   return (...argumentList) => {
-    // create a set of all object keys used in the argument list
     const keys = new Set<string | number>();
-
-    // in addition to building the set of keys, convert BigInts, symbols and undefined to unique strings
     const converted = JSON.stringify(argumentList, (key, value: unknown) => {
+      // create a set of all object keys used in the argument list
       keys.add(key);
+
+      // convert BigInts, symbols and undefined to unique strings
       switch (typeof value) {
         case 'bigint': {
           return `${seed}:${value}n`;
