@@ -120,13 +120,58 @@ describe('memoize', () => {
     const promise1 = memoizedFunction({ a: 2, b: 1 }, 2, { a: 1, b: { x: 'a', y: 'b' } }, { b: 2, c: 3, a: [2, 1] });
     const promise2 = memoizedFunction({ b: 1, a: 2 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 });
     const promise3 = memoizedFunction({ b: 1, a: 2 }, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 }, 2);
+    const promise4 = memoizedFunction({ b: 2, a: [2, 1], c: 3 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 1, a: 2 });
     assert.equal(promise1, promise2);
     assert.notEqual(promise1, promise3);
+    assert.notEqual(promise1, promise4);
+    assert.notEqual(promise3, promise4);
     assert.deepEqual(await Promise.all([promise1, promise2]), [
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
     ]);
     assert.deepEqual(await promise3, '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]');
+    assert.deepEqual(await promise4, '[{"b":2,"a":[2,1],"c":3},2,{"b":{"y":"b","x":"a"},"a":1},{"b":1,"a":2}]');
+    assert.equal(count, 3);
+  });
+
+  it('supports bigint arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList, (_, value: unknown) => {
+        if (typeof value === 'bigint') {
+          return `${value}n`;
+        }
+        return value;
+      })}`;
+    });
+    const promise1 = memoizedFunction(1n, { a: 2n, b: [3n, -4n] }, 5n);
+    const promise2 = memoizedFunction(1n, { a: 2n, b: [3, -4n] }, 5n);
+    assert.notEqual(promise1, promise2);
+    assert.deepEqual(await promise1, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
+    assert.deepEqual(await promise2, '["1n",{"a":"2n","b":[3,"-4n"]},"5n"]');
     assert.equal(count, 2);
+  });
+
+  it('supports undefined vs null arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList)}`;
+    });
+    const promise1 = memoizedFunction(1, undefined, 2);
+    const promise2 = memoizedFunction(1, null, 2);
+    const promise3 = memoizedFunction(1, undefined);
+    const promise4 = memoizedFunction(1);
+
+    // even though JSON.stringify converts undefined to null, the memoize function will still recognize the difference
+    assert.notEqual(promise1, promise2);
+    assert.notEqual(promise2, promise3);
+    assert.notEqual(promise3, promise4);
+    assert.deepEqual(await promise1, '[1,null,2]');
+    assert.deepEqual(await promise2, '[1,null,2]');
+    assert.deepEqual(await promise3, '[1,null]');
+    assert.deepEqual(await promise4, '[1]');
+    assert.equal(count, 4);
   });
 });
