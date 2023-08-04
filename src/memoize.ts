@@ -9,6 +9,7 @@
 // arguments must be stringify-able
 export type Argument =
   | string
+  | symbol
   | bigint
   | number
   | boolean
@@ -32,6 +33,7 @@ export default <Arguments extends Argument[], Return>(
   memoizableFunction: MemoizableFunction<Arguments, Return>,
 ): MemoizableFunction<Arguments, Return> => {
   const cache = new Map<string, Promise<Return>>();
+  const symbols = new Map<symbol, string>();
 
   // use a random seed so the cache key remains unique when serializing BigInts and undefined into strings
   const seed = Math.random().toString();
@@ -40,16 +42,38 @@ export default <Arguments extends Argument[], Return>(
     // create a set of all object keys used in the argument list
     const keys = new Set<string | number>();
 
-    // in addition to building the set of keys, convert any BigInts to strings
+    // in addition to building the set of keys, convert BigInts, symbols and undefined to unique strings
     const converted = JSON.stringify(argumentList, (key, value: unknown) => {
       keys.add(key);
-      if (typeof value === 'bigint') {
-        return `${seed}:${value}n`;
+      switch (typeof value) {
+        case 'bigint': {
+          return `${seed}:${value}n`;
+        }
+
+        case 'undefined': {
+          return `${seed}:undefined'`;
+        }
+
+        case 'symbol': {
+          let symbolUniqueStringValue = symbols.get(value);
+          if (symbolUniqueStringValue === undefined) {
+            symbolUniqueStringValue = `${seed}:symbol:${Math.random().toString()}`;
+            symbols.set(value, symbolUniqueStringValue);
+          }
+          return symbolUniqueStringValue;
+        }
+
+        case 'function': {
+          throw new TypeError('Function arguments cannot be memoized');
+        }
+
+        case 'string':
+        case 'number':
+        case 'boolean':
+        case 'object': {
+          return value;
+        }
       }
-      if (value === undefined) {
-        return `${seed}:undefined'`;
-      }
-      return value;
     });
 
     // create a cache key so that e.g. [{ a: 1, b: 2 }] and [{ b: 2, a: 1 }] map to the same cache entry

@@ -180,4 +180,40 @@ describe('memoize', () => {
     assert.deepEqual(await promise5, '[1,"undefined"]');
     assert.equal(count, 5);
   });
+
+  it('support symbol arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList)}`;
+    });
+    const symbol1 = Symbol('hello');
+    const symbol2 = Symbol('world');
+    const promise1 = memoizedFunction(symbol1, symbol2);
+    const promise2 = memoizedFunction(null, null);
+    const promise3 = memoizedFunction(symbol1, symbol2);
+    const promise4 = memoizedFunction(symbol1, symbol1);
+
+    // even though JSON.stringify converts symbols to null, the memoize function will still recognize the difference
+    assert.notEqual(promise1, promise2);
+    assert.equal(promise1, promise3);
+    assert.notEqual(promise3, promise4);
+    assert.deepEqual(await promise1, '[null,null]');
+    assert.deepEqual(await promise2, '[null,null]');
+    assert.deepEqual(await promise3, '[null,null]');
+    assert.deepEqual(await promise4, '[null,null]');
+    assert.equal(count, 3);
+  });
+
+  it('throw error if passed a function argument', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList)}`;
+    });
+    assert.throws(() => memoizedFunction(memoizedFunction as unknown as string), {
+      message: 'Function arguments cannot be memoized',
+    });
+    assert.equal(count, 0);
+  });
 });
