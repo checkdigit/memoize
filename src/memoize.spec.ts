@@ -147,10 +147,13 @@ describe('memoize', () => {
     });
     const promise1 = memoizedFunction(1n, { a: 2n, b: [3n, -4n] }, 5n);
     const promise2 = memoizedFunction(1n, { a: 2n, b: [3, -4n] }, 5n);
+    const promise3 = memoizedFunction(1n, { a: 2n, b: ['3n', -4n] }, 5n);
     assert.notEqual(promise1, promise2);
+    assert.notEqual(promise1, promise3);
     assert.deepEqual(await promise1, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
     assert.deepEqual(await promise2, '["1n",{"a":"2n","b":[3,"-4n"]},"5n"]');
-    assert.equal(count, 2);
+    assert.deepEqual(await promise3, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
+    assert.equal(count, 3);
   });
 
   it('supports undefined vs null arguments', async () => {
@@ -163,15 +166,18 @@ describe('memoize', () => {
     const promise2 = memoizedFunction(1, null, 2);
     const promise3 = memoizedFunction(1, undefined);
     const promise4 = memoizedFunction(1);
+    const promise5 = memoizedFunction(1, 'undefined');
 
     // even though JSON.stringify converts undefined to null, the memoize function will still recognize the difference
     assert.notEqual(promise1, promise2);
     assert.notEqual(promise2, promise3);
     assert.notEqual(promise3, promise4);
+    assert.notEqual(promise3, promise5);
     assert.deepEqual(await promise1, '[1,null,2]');
     assert.deepEqual(await promise2, '[1,null,2]');
     assert.deepEqual(await promise3, '[1,null]');
     assert.deepEqual(await promise4, '[1]');
-    assert.equal(count, 4);
+    assert.deepEqual(await promise5, '[1,"undefined"]');
+    assert.equal(count, 5);
   });
 });
