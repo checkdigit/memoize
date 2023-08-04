@@ -110,7 +110,7 @@ describe('memoize', () => {
     assert.equal(count, 1);
   });
 
-  it.only('returns same promise for identical object arguments even if keys in different orders', async () => {
+  it('returns same promise for identical object arguments even if keys in different orders', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;

@@ -23,15 +23,15 @@ export default <Arguments extends Argument[], Return>(
 ): MemoizableFunction<Arguments, Return> => {
   const cache = new Map<string, Promise<Return>>();
   return (...argumentList) => {
-    // create a set of all keys used in the argument list
+    // create a set of all object keys used in the argument list
     const keys = new Set<string | number>();
-    JSON.stringify(argumentList, (key, value) => {
+    JSON.stringify(argumentList, (key, value: unknown) => {
       keys.add(key);
       return value;
     });
 
     // create a cache key so that e.g. [{ a: 1, b: 2 }] and [{ b: 2, a: 1 }] map to the same cache entry
-    const cacheKey = JSON.stringify(argumentList, Array.from(keys).sort());
+    const cacheKey = JSON.stringify(argumentList, [...keys].sort());
 
     let value = cache.get(cacheKey);
     if (value === undefined) {
