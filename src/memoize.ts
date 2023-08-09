@@ -70,7 +70,7 @@ export default <Arguments extends Argument[], Return>(
 
         case 'object': {
           if (value instanceof Set) {
-            return [...(value as Set<Argument>)].sort();
+            return [`${seed}:set`, ...(value as Set<Argument>)].sort();
           }
           if (value instanceof WeakSet) {
             throw new TypeError('WeakSet arguments cannot be memoized');
