@@ -217,4 +217,37 @@ describe('memoize', () => {
     });
     assert.equal(count, 0);
   });
+
+  it('support Set arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return `${JSON.stringify(argumentList)}`;
+    });
+    const set1 = new Set(['a', 'b', 'c']);
+    const set2 = new Set(['c', 'b', 'a']);
+    const set3 = new Set(['x', 'y', 'c']);
+    const promise1 = memoizedFunction(set1);
+    const promise2 = memoizedFunction(set2);
+    const promise3 = memoizedFunction(set3);
+    assert.equal(promise1, promise2);
+    assert.notEqual(promise1, promise3);
+    assert.equal(await promise1, '[{}]');
+    assert.equal(await promise2, '[{}]');
+    assert.equal(await promise3, '[{}]');
+    assert.equal(count, 2);
+  });
+
+  it('throw TypeError if passed a WeakSet argument', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (_: unknown) => {
+      count += 1;
+    });
+    // Typescript won't allow this to happen, but Javascript will
+    assert.throws(() => memoizedFunction(new WeakSet() as unknown as string), {
+      name: 'TypeError',
+      message: 'WeakSet arguments cannot be memoized',
+    });
+    assert.equal(count, 0);
+  });
 });
