@@ -129,8 +129,8 @@ describe('memoize', () => {
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
     ]);
-    assert.deepEqual(await promise3, '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]');
-    assert.deepEqual(await promise4, '[{"b":2,"a":[2,1],"c":3},2,{"b":{"y":"b","x":"a"},"a":1},{"b":1,"a":2}]');
+    assert.equal(await promise3, '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]');
+    assert.equal(await promise4, '[{"b":2,"a":[2,1],"c":3},2,{"b":{"y":"b","x":"a"},"a":1},{"b":1,"a":2}]');
     assert.equal(count, 3);
   });
 
@@ -150,9 +150,9 @@ describe('memoize', () => {
     const promise3 = memoizedFunction(1n, { a: 2n, b: ['3n', -4n] }, 5n);
     assert.notEqual(promise1, promise2);
     assert.notEqual(promise1, promise3);
-    assert.deepEqual(await promise1, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
-    assert.deepEqual(await promise2, '["1n",{"a":"2n","b":[3,"-4n"]},"5n"]');
-    assert.deepEqual(await promise3, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
+    assert.equal(await promise1, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
+    assert.equal(await promise2, '["1n",{"a":"2n","b":[3,"-4n"]},"5n"]');
+    assert.equal(await promise3, '["1n",{"a":"2n","b":["3n","-4n"]},"5n"]');
     assert.equal(count, 3);
   });
 
@@ -173,11 +173,11 @@ describe('memoize', () => {
     assert.notEqual(promise2, promise3);
     assert.notEqual(promise3, promise4);
     assert.notEqual(promise3, promise5);
-    assert.deepEqual(await promise1, '[1,null,2]');
-    assert.deepEqual(await promise2, '[1,null,2]');
-    assert.deepEqual(await promise3, '[1,null]');
-    assert.deepEqual(await promise4, '[1]');
-    assert.deepEqual(await promise5, '[1,"undefined"]');
+    assert.equal(await promise1, '[1,null,2]');
+    assert.equal(await promise2, '[1,null,2]');
+    assert.equal(await promise3, '[1,null]');
+    assert.equal(await promise4, '[1]');
+    assert.equal(await promise5, '[1,"undefined"]');
     assert.equal(count, 5);
   });
 
@@ -198,10 +198,10 @@ describe('memoize', () => {
     assert.notEqual(promise1, promise2);
     assert.equal(promise1, promise3);
     assert.notEqual(promise3, promise4);
-    assert.deepEqual(await promise1, '[null,null]');
-    assert.deepEqual(await promise2, '[null,null]');
-    assert.deepEqual(await promise3, '[null,null]');
-    assert.deepEqual(await promise4, '[null,null]');
+    assert.equal(await promise1, '[null,null]');
+    assert.equal(await promise2, '[null,null]');
+    assert.equal(await promise3, '[null,null]');
+    assert.equal(await promise4, '[null,null]');
     assert.equal(count, 3);
   });
 
