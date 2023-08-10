@@ -17,7 +17,6 @@ export type Argument =
   | undefined
   | Date
   | URL
-  | Set<Argument>
   | Argument[]
   | { [key: string]: Argument };
 
@@ -69,14 +68,18 @@ export default <Arguments extends Argument[], Return>(
         }
 
         case 'object': {
-          if (value instanceof Set) {
-            return [`${seed}:set`, ...(value as Set<Argument>)].sort();
+          if (value === null) {
+            return null;
           }
-          if (value instanceof WeakSet) {
-            throw new TypeError('WeakSet arguments cannot be memoized');
+          if (Object.getPrototypeOf(value) === Object.getPrototypeOf({})) {
+            return value;
           }
-          return value;
+          if (Object.getPrototypeOf(value) === Object.getPrototypeOf([])) {
+            return value;
+          }
+          throw new TypeError(`Object argument cannot be memoized`);
         }
+
         case 'number':
         case 'boolean':
         case 'string': {
