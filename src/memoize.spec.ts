@@ -222,6 +222,29 @@ describe('memoize', () => {
     let count = 0;
     const memoizedFunction = memoize(async (_: unknown) => {
       count += 1;
+      return count;
+    });
+
+    assert.equal(await memoizedFunction({}), 1);
+    assert.equal(await memoizedFunction(Object.create({})), 1);
+    // eslint-disable-next-line no-new-object
+    assert.equal(await memoizedFunction(new Object() as Record<string, string>), 1);
+
+    assert.equal(await memoizedFunction([]), 2);
+    // eslint-disable-next-line unicorn/prefer-spread
+    assert.equal(await memoizedFunction(Array.from([])), 2);
+    // eslint-disable-next-line unicorn/no-new-array
+    assert.equal(await memoizedFunction(new Array(0)), 2);
+    // eslint-disable-next-line @typescript-eslint/no-array-constructor
+    assert.equal(await memoizedFunction(new Array()), 2);
+
+    assert.throws(() => memoizedFunction(new WeakMap() as unknown as string), {
+      name: 'TypeError',
+      message: 'Object argument cannot be memoized',
+    });
+    assert.throws(() => memoizedFunction(new Map() as unknown as string), {
+      name: 'TypeError',
+      message: 'Object argument cannot be memoized',
     });
     assert.throws(() => memoizedFunction(new WeakSet() as unknown as string), {
       name: 'TypeError',
@@ -235,10 +258,7 @@ describe('memoize', () => {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(Object.create({})), {
-      name: 'TypeError',
-      message: 'Object argument cannot be memoized',
-    });
-    assert.equal(count, 0);
+
+    assert.equal(count, 2);
   });
 });

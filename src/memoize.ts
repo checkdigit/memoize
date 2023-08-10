@@ -40,7 +40,7 @@ export default <Arguments extends Argument[], Return>(
 
   return (...argumentList) => {
     const keys = new Set<string | number>();
-    const converted = JSON.stringify(argumentList, (key, value: unknown) => {
+    const converted = JSON.stringify(argumentList, (key, value: Argument) => {
       // create a set of all object keys used in the argument list
       keys.add(key);
 
@@ -71,10 +71,12 @@ export default <Arguments extends Argument[], Return>(
           if (value === null) {
             return null;
           }
-          if (Object.getPrototypeOf(value) === Object.getPrototypeOf({})) {
+          // if the object is an array, it is safe to memoize
+          if (Array.isArray(value)) {
             return value;
           }
-          if (Object.getPrototypeOf(value) === Object.getPrototypeOf([])) {
+          // if the object doesn't inherit from anything, it is safe to memoize
+          if (value.constructor === Object) {
             return value;
           }
           throw new TypeError(`Object argument cannot be memoized`);
