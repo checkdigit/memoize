@@ -1,7 +1,7 @@
 {
   "name": "@checkdigit/memoize",
-  "version": "1.0.0",
-  "description": "Memoize is a small async function for memoizing promises with cache eviction on reject",
+  "version": "1.1.0",
+  "description": "Memoizing async functions with cache eviction on reject",
   "exports": {
     ".": {
       "types": "./dist-types/index.d.ts",
@@ -40,10 +40,10 @@
   },
   "homepage": "https://github.com/checkdigit/memoize#readme",
   "devDependencies": {
-    "@checkdigit/eslint-config": "^7.8.0",
-    "@checkdigit/jest-config": "^2.3.0",
-    "@checkdigit/prettier-config": "^3.4.0",
-    "@checkdigit/typescript-config": "^3.5.0",
+    "@checkdigit/eslint-config": "^8.1.0",
+    "@checkdigit/jest-config": "^3.0.0",
+    "@checkdigit/prettier-config": "^4.0.0",
+    "@checkdigit/typescript-config": "^4.0.0",
     "@types/uuid": "^9.0.2",
     "rimraf": "^5.0.1",
     "uuid": "^9.0.0"
@@ -63,8 +63,8 @@
     "build:dist-esm": "rimraf dist-esm && npx builder --type=module --sourceMap --outDir=dist-mjs",
     "prettier": "prettier --ignore-path .gitignore --list-different .",
     "prettier:fix": "prettier --ignore-path .gitignore --write .",
-    "lint:fix": "eslint -f unix --ext .ts,.mts src --fix",
-    "lint": "eslint -f unix --ext .ts,.mts src",
+    "lint:fix": "eslint --ignore-path .gitignore -f unix --ext .ts,.mts src --fix",
+    "lint": "eslint --ignore-path .gitignore -f unix --ext .ts,.mts src",
     "test": "npm run ci:compile && npm run ci:test && npm run ci:lint && npm run ci:style",
     "ci:compile": "tsc --noEmit",
     "ci:test": "jest --coverage=false",
