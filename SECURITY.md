@@ -6,7 +6,7 @@ These versions of @checkdigit/memoize are currently being supported with securit
 
 | Version | Supported          |
 | ------- | ------------------ |
-| > 1.x   | :white_check_mark: |
+| > 2.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
