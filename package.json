@@ -9,6 +9,8 @@
       "default": "./dist-mjs/index.mjs"
     }
   },
+  "type": "module",
+  "sideEffects": false,
   "files": [
     "src",
     "dist-types",
