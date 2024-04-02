@@ -1,12 +1,14 @@
 // memoize.spec.ts
 
 /*
- * Copyright (c) 2023 Check Digit, LLC
+ * Copyright (c) 2023-2024 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
 
 import { strict as assert } from 'node:assert';
+
+import { describe, it } from '@jest/globals';
 
 import memoize from './index';
 
@@ -115,7 +117,7 @@ describe('memoize', () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
-      return `${JSON.stringify(argumentList)}`;
+      return JSON.stringify(argumentList);
     });
     const promise1 = memoizedFunction({ a: 2, b: 1 }, 2, { a: 1, b: { x: 'a', y: 'b' } }, { b: 2, c: 3, a: [2, 1] });
     const promise2 = memoizedFunction({ b: 1, a: 2 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 });
@@ -138,12 +140,12 @@ describe('memoize', () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
-      return `${JSON.stringify(argumentList, (_, value: unknown) => {
+      return JSON.stringify(argumentList, (_, value: unknown) => {
         if (typeof value === 'bigint') {
           return `${value}n`;
         }
         return value;
-      })}`;
+      });
     });
     const promise1 = memoizedFunction(1n, { a: 2n, b: [3n, -4n] }, 5n);
     const promise2 = memoizedFunction(1n, { a: 2n, b: [3, -4n] }, 5n);
@@ -160,7 +162,7 @@ describe('memoize', () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
-      return `${JSON.stringify(argumentList)}`;
+      return JSON.stringify(argumentList);
     });
     const promise1 = memoizedFunction(1, undefined, 2);
     const promise2 = memoizedFunction(1, null, 2);
@@ -185,7 +187,7 @@ describe('memoize', () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
-      return `${JSON.stringify(argumentList)}`;
+      return JSON.stringify(argumentList);
     });
     const symbol1 = Symbol('hello');
     const symbol2 = Symbol('world');
@@ -227,7 +229,8 @@ describe('memoize', () => {
 
     assert.equal(await memoizedFunction({}), 1);
     assert.equal(await memoizedFunction(Object.create({})), 1);
-    // eslint-disable-next-line no-new-object
+
+    // eslint-disable-next-line no-object-constructor
     assert.equal(await memoizedFunction(new Object() as Record<string, string>), 1);
 
     assert.equal(await memoizedFunction([]), 2);
