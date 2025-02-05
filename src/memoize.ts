@@ -36,8 +36,7 @@ export default <Arguments extends Argument[], Return>(
   const symbols = new Map<symbol, string>();
 
   // use a random seed so the cache key remains unique when serializing BigInts and undefined into strings
-  // eslint-disable-next-line sonarjs/pseudo-random
-  const seed = Math.random().toString();
+  const seed = crypto.randomUUID();
 
   return (...argumentList) => {
     const keys = new Set<string | number>();
@@ -59,8 +58,7 @@ export default <Arguments extends Argument[], Return>(
         case 'symbol': {
           let symbolUniqueStringValue = symbols.get(value);
           if (symbolUniqueStringValue === undefined) {
-            // eslint-disable-next-line sonarjs/pseudo-random
-            symbolUniqueStringValue = `${seed}:symbol:${Math.random().toString()}`;
+            symbolUniqueStringValue = `${seed}:symbol:${crypto.randomUUID()}`;
             symbols.set(value, symbolUniqueStringValue);
           }
           return symbolUniqueStringValue;
