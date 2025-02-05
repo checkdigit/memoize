@@ -1,6 +1,6 @@
 # Memoize
 
-Copyright (c) 2023–2024 [Check Digit, LLC](https://checkdigit.com)
+Copyright (c) 2023–2025 [Check Digit, LLC](https://checkdigit.com)
 
 `@checkdigit/memoize` memoizes async functions, with cache eviction on reject.
 The resulting promise is cached, guaranteeing the underlying function is called at most once for a given set of
@@ -9,15 +9,15 @@ arguments, unless the promise ultimately rejects.
 If the promise is rejected, it will be removed from the memoize cache.  
 This allows the function to be retried.
 
-### Install
+## Install
 
-```
+```shell
 $ npm install @checkdigit/memoize
 ```
 
-### Use
+## Use
 
-```
+```ts
 import memoize from '@checkdigit/memoize';
 
 async function doIt(parameter: number): Promise<number> {
