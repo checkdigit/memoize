@@ -1,7 +1,7 @@
 // memoize.ts
 
 /*
- * Copyright (c) 2023-2024 Check Digit, LLC
+ * Copyright (c) 2023-2025 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
@@ -36,10 +36,11 @@ export default <Arguments extends Argument[], Return>(
   const symbols = new Map<symbol, string>();
 
   // use a random seed so the cache key remains unique when serializing BigInts and undefined into strings
-  const seed = Math.random().toString();
+  const seed = crypto.randomUUID();
 
   return (...argumentList) => {
     const keys = new Set<string | number>();
+    // eslint-disable-next-line sonarjs/function-return-type
     const converted = JSON.stringify(argumentList, (key, value: Argument) => {
       // create a set of all object keys used in the argument list
       keys.add(key);
@@ -57,7 +58,7 @@ export default <Arguments extends Argument[], Return>(
         case 'symbol': {
           let symbolUniqueStringValue = symbols.get(value);
           if (symbolUniqueStringValue === undefined) {
-            symbolUniqueStringValue = `${seed}:symbol:${Math.random().toString()}`;
+            symbolUniqueStringValue = `${seed}:symbol:${crypto.randomUUID()}`;
             symbols.set(value, symbolUniqueStringValue);
           }
           return symbolUniqueStringValue;
@@ -91,12 +92,14 @@ export default <Arguments extends Argument[], Return>(
     });
 
     // create a cache key so that e.g. [{ a: 1, b: 2 }] and [{ b: 2, a: 1 }] map to the same cache entry
+    // eslint-disable-next-line sonarjs/no-alphabetical-sort
     const cacheKey = JSON.stringify(JSON.parse(converted), [...keys].sort());
 
     let value = cache.get(cacheKey);
     if (value === undefined) {
       value = memoizableFunction(...argumentList);
       cache.set(cacheKey, value);
+      // eslint-disable-next-line @checkdigit/no-promise-instance-method
       value.catch(() => {
         // on a reject, evict key from cache
         cache.delete(cacheKey);
