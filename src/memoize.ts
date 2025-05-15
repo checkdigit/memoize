@@ -68,7 +68,7 @@ export default <Arguments extends Argument[], Return>(
         }
 
         case 'function': {
-          return `${seed}:function:${value.toString()}n`;
+          return `${seed}:function:${value.toString()}`;
         }
 
         case 'object': {
