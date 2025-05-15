@@ -375,13 +375,18 @@ describe('memoize', () => {
   });
 
   it('throw TypeError if passed a circular object argument', async () => {
-    let count = 0;
-    const memoizedFunction = memoize(async (_: unknown) => {
-      count += 1;
-      return count;
+    const memoizedFunction = memoize(async (value: unknown) => {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'toJSON' in value &&
+        typeof value.toJSON === 'function'
+      ) {
+        return value.toJSON();
+      }
     });
 
-    const object1 = { x: 1 } as { x: number; y: object };
+    const object1 = { x: 1 } as { x: number; y: object; toJSON: () => string };
     object1.y = object1;
 
     assert.throws(() => memoizedFunction(object1), {
@@ -391,5 +396,9 @@ describe('memoize', () => {
         "    --> starting at object with constructor 'Object'\n" +
         "    --- property 'y' closes the circle",
     });
+
+    // ...but it works if there is a toJSON() method
+    object1.toJSON = () => 'string!';
+    assert.equal(await memoizedFunction(object1), 'string!');
   });
 });
