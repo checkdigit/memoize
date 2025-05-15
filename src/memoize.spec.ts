@@ -323,4 +323,73 @@ describe('memoize', () => {
 
     assert.equal(count, 2);
   });
+
+  it('supports Date arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return JSON.stringify(argumentList, (_, value: unknown) => {
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return value;
+      });
+    });
+    const now = new Date();
+    const alsoNow = new Date(now);
+    const then = new Date(0);
+    const promise1 = memoizedFunction(now);
+    const promise2 = memoizedFunction(alsoNow);
+    const promise3 = memoizedFunction(then);
+    assert.equal(promise1, promise2);
+    assert.notEqual(promise1, promise3);
+    assert.equal(await promise1, `["${now.toISOString()}"]`);
+    assert.equal(await promise2, `["${now.toISOString()}"]`);
+    assert.equal(await promise3, `["${then.toISOString()}"]`);
+    assert.equal(count, 2);
+  });
+
+  it('supports URL arguments', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (...argumentList) => {
+      count += 1;
+      return JSON.stringify(argumentList, (_, value: unknown) => {
+        if (value instanceof URL) {
+          return value.toJSON();
+        }
+        return value;
+      });
+    });
+    const url1 = new URL('https://example.com/');
+    const url2 = new URL('https://example.com:443/');
+    const url3 = new URL('https://other-example.com/');
+    const promise1 = memoizedFunction(url1);
+    const promise2 = memoizedFunction(url2);
+    const promise3 = memoizedFunction(url3);
+    assert.equal(promise1, promise2);
+    assert.notEqual(promise1, promise3);
+    assert.equal(await promise1, `["${url1}"]`);
+    assert.equal(await promise2, `["${url1}"]`);
+    assert.equal(await promise3, `["${url3}"]`);
+    assert.equal(count, 2);
+  });
+
+  it('throw TypeError if passed a circular object argument', async () => {
+    let count = 0;
+    const memoizedFunction = memoize(async (_: unknown) => {
+      count += 1;
+      return count;
+    });
+
+    const object1 = { x: 1 } as { x: number; y: object };
+    object1.y = object1;
+
+    assert.throws(() => memoizedFunction(object1), {
+      name: 'TypeError',
+      message:
+        'Converting circular structure to JSON\n' +
+        "    --> starting at object with constructor 'Object'\n" +
+        "    --- property 'y' closes the circle",
+    });
+  });
 });

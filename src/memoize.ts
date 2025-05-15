@@ -15,10 +15,7 @@ export type Argument =
   | boolean
   | null
   | undefined
-  | Date
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  | Function
-  | URL
+  | object
   | Argument[]
   | { [key: string]: Argument };
 
