@@ -74,7 +74,11 @@ describe('memoize', () => {
     const promise3 = memoizedFunction('hello', 'world');
     assert.equal(promise1, promise2);
     assert.equal(promise2, promise3);
-    assert.deepEqual(await Promise.all([promise1, promise2, promise3]), ['hello world', 'hello world', 'hello world']);
+    assert.deepEqual(await Promise.all([promise1, promise2, promise3]), [
+      'hello world',
+      'hello world',
+      'hello world',
+    ]);
     assert.equal(count, 1);
   });
 
@@ -89,16 +93,22 @@ describe('memoize', () => {
     const promise3 = memoizedFunction('hello', 3);
     assert.notEqual(promise1, promise2);
     assert.notEqual(promise2, promise3);
-    assert.deepEqual(await Promise.all([promise1, promise2, promise3]), ['hello 1', 'hello 2', 'hello 3']);
+    assert.deepEqual(await Promise.all([promise1, promise2, promise3]), [
+      'hello 1',
+      'hello 2',
+      'hello 3',
+    ]);
     assert.equal(count, 3);
   });
 
   it('returns the same promise for identical object arguments', async () => {
     let count = 0;
-    const memoizedFunction = memoize(async (first: { x: number }, second: { y: number }) => {
-      count += 1;
-      return `${JSON.stringify(first)} ${JSON.stringify(second)}`;
-    });
+    const memoizedFunction = memoize(
+      async (first: { x: number }, second: { y: number }) => {
+        count += 1;
+        return `${JSON.stringify(first)} ${JSON.stringify(second)}`;
+      },
+    );
     const promise1 = memoizedFunction({ x: 1 }, { y: 1 });
     const promise2 = memoizedFunction({ x: 1 }, { y: 1 });
     const promise3 = memoizedFunction({ x: 1 }, { y: 1 });
@@ -118,10 +128,30 @@ describe('memoize', () => {
       count += 1;
       return JSON.stringify(argumentList);
     });
-    const promise1 = memoizedFunction({ a: 2, b: 1 }, 2, { a: 1, b: { x: 'a', y: 'b' } }, { b: 2, c: 3, a: [2, 1] });
-    const promise2 = memoizedFunction({ b: 1, a: 2 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 });
-    const promise3 = memoizedFunction({ b: 1, a: 2 }, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 2, a: [2, 1], c: 3 }, 2);
-    const promise4 = memoizedFunction({ b: 2, a: [2, 1], c: 3 }, 2, { b: { y: 'b', x: 'a' }, a: 1 }, { b: 1, a: 2 });
+    const promise1 = memoizedFunction(
+      { a: 2, b: 1 },
+      2,
+      { a: 1, b: { x: 'a', y: 'b' } },
+      { b: 2, c: 3, a: [2, 1] },
+    );
+    const promise2 = memoizedFunction(
+      { b: 1, a: 2 },
+      2,
+      { b: { y: 'b', x: 'a' }, a: 1 },
+      { b: 2, a: [2, 1], c: 3 },
+    );
+    const promise3 = memoizedFunction(
+      { b: 1, a: 2 },
+      { b: { y: 'b', x: 'a' }, a: 1 },
+      { b: 2, a: [2, 1], c: 3 },
+      2,
+    );
+    const promise4 = memoizedFunction(
+      { b: 2, a: [2, 1], c: 3 },
+      2,
+      { b: { y: 'b', x: 'a' }, a: 1 },
+      { b: 1, a: 2 },
+    );
     assert.equal(promise1, promise2);
     assert.notEqual(promise1, promise3);
     assert.notEqual(promise1, promise4);
@@ -130,8 +160,14 @@ describe('memoize', () => {
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
       '[{"a":2,"b":1},2,{"a":1,"b":{"x":"a","y":"b"}},{"b":2,"c":3,"a":[2,1]}]',
     ]);
-    assert.equal(await promise3, '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]');
-    assert.equal(await promise4, '[{"b":2,"a":[2,1],"c":3},2,{"b":{"y":"b","x":"a"},"a":1},{"b":1,"a":2}]');
+    assert.equal(
+      await promise3,
+      '[{"b":1,"a":2},{"b":{"y":"b","x":"a"},"a":1},{"b":2,"a":[2,1],"c":3},2]',
+    );
+    assert.equal(
+      await promise4,
+      '[{"b":2,"a":[2,1],"c":3},2,{"b":{"y":"b","x":"a"},"a":1},{"b":1,"a":2}]',
+    );
     assert.equal(count, 3);
   });
 
@@ -206,17 +242,29 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
-  it('throw TypeError if passed a function argument', async () => {
+  it('support function arguments', async () => {
     let count = 0;
-    const memoizedFunction = memoize(async (_: unknown) => {
+    const memoizedFunction = memoize(async (...argumentList) => {
       count += 1;
+      return argumentList.map((value) => JSON.stringify(value));
     });
-    // Typescript won't allow this to happen, but Javascript will
-    assert.throws(() => memoizedFunction(memoizedFunction as unknown as string), {
-      name: 'TypeError',
-      message: 'Function arguments cannot be memoized',
-    });
-    assert.equal(count, 0);
+
+    const promise1 = memoizedFunction(() => 0);
+    const promise2 = memoizedFunction(() => 0);
+    const promise3 = memoizedFunction({ x: it, y: describe, z: 0 });
+    const promise4 = memoizedFunction({ z: 0, y: describe, x: it });
+
+    assert.equal(promise1, promise2);
+    assert.equal(promise3, promise4);
+    assert.notEqual(promise1, promise3);
+    assert.notEqual(promise2, promise4);
+
+    assert.deepEqual(await promise1, [undefined]);
+    assert.deepEqual(await promise2, [undefined]);
+    assert.deepEqual(await promise3, ['{"z":0}']);
+    assert.deepEqual(await promise4, ['{"z":0}']);
+
+    assert.equal(count, 2);
   });
 
   it('throw TypeError if passed a non-literal object argument', async () => {
@@ -229,11 +277,13 @@ describe('memoize', () => {
     assert.equal(await memoizedFunction({}), 1);
     assert.equal(await memoizedFunction(Object.create({})), 1);
 
-    // eslint-disable-next-line no-object-constructor
-    assert.equal(await memoizedFunction(new Object() as Record<string, string>), 1);
+    assert.equal(
+      // eslint-disable-next-line no-object-constructor
+      await memoizedFunction(new Object() as Record<string, string>),
+      1,
+    );
 
     assert.equal(await memoizedFunction([]), 2);
-    // eslint-disable-next-line unicorn/prefer-spread
     assert.equal(await memoizedFunction(Array.from([])), 2);
     // eslint-disable-next-line unicorn/no-new-array
     assert.equal(await memoizedFunction(new Array(0)), 2);
