@@ -254,17 +254,27 @@ describe('memoize', () => {
     const promise3 = memoizedFunction({ x: it, y: describe, z: 0 });
     const promise4 = memoizedFunction({ z: 0, y: describe, x: it });
 
+    // These are both native functions where the toString() evaluates to:
+    // 'function toString() { [native code] }'
+    // So they are not technically the same function, but we are treating them so.
+    const promise5 = memoizedFunction(''.toString);
+    const promise6 = memoizedFunction([].toString);
+
     assert.equal(promise1, promise2);
     assert.equal(promise3, promise4);
+    assert.equal(promise5, promise6);
     assert.notEqual(promise1, promise3);
     assert.notEqual(promise2, promise4);
+    assert.notEqual(promise4, promise6);
 
     assert.deepEqual(await promise1, [undefined]);
     assert.deepEqual(await promise2, [undefined]);
     assert.deepEqual(await promise3, ['{"z":0}']);
     assert.deepEqual(await promise4, ['{"z":0}']);
+    assert.deepEqual(await promise5, [undefined]);
+    assert.deepEqual(await promise6, [undefined]);
 
-    assert.equal(count, 2);
+    assert.equal(count, 3);
   });
 
   it('throw TypeError if passed a non-literal object argument', async () => {
