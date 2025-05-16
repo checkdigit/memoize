@@ -6,4 +6,4 @@
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
 
-export { default } from './memoize.ts';
+export { type Argument, type MemoizableFunction, default } from './memoize.ts';

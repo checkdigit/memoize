@@ -15,12 +15,13 @@ export type Argument =
   | boolean
   | null
   | undefined
-  | Date
-  | URL
+  | object
   | Argument[]
   | { [key: string]: Argument };
 
-export type MemoizableFunction<Arguments extends Argument[], Return> = (...argumentList: Arguments) => Promise<Return>;
+export type MemoizableFunction<Arguments extends Argument[], Return> = (
+  ...argumentList: Arguments
+) => Promise<Return>;
 
 /**
  * Memoize an async function.  The promise is cached, not the value.  This guarantees the underlying function is
@@ -36,6 +37,7 @@ export default <Arguments extends Argument[], Return>(
   const symbols = new Map<symbol, string>();
 
   // use a random seed so the cache key remains unique when serializing BigInts and undefined into strings
+  // eslint-disable-next-line @checkdigit/no-random-v4-uuid
   const seed = crypto.randomUUID();
 
   return (...argumentList) => {
@@ -58,6 +60,7 @@ export default <Arguments extends Argument[], Return>(
         case 'symbol': {
           let symbolUniqueStringValue = symbols.get(value);
           if (symbolUniqueStringValue === undefined) {
+            // eslint-disable-next-line @checkdigit/no-random-v4-uuid
             symbolUniqueStringValue = `${seed}:symbol:${crypto.randomUUID()}`;
             symbols.set(value, symbolUniqueStringValue);
           }
@@ -65,7 +68,7 @@ export default <Arguments extends Argument[], Return>(
         }
 
         case 'function': {
-          throw new TypeError('Function arguments cannot be memoized');
+          return `${seed}:function:${value.toString()}`;
         }
 
         case 'object': {
