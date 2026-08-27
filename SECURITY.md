@@ -2,11 +2,12 @@
 
 ## Supported Versions
 
-These versions of @checkdigit/memoize are currently being supported with security updates.
+These versions of `@checkdigit/memoize` are currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| \>= 3.x | :white_check_mark: |
+| \>= 4.0 | :white_check_mark: |
+| \< 4.0  | :x:                |
 
 ## Reporting a Vulnerability
 

@@ -1,7 +1,7 @@
 // memoize.spec.ts
 
 /*
- * Copyright (c) 2023-2025 Check Digit, LLC
+ * Copyright (c) 2023-2026 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
@@ -257,7 +257,9 @@ describe('memoize', () => {
     // These are both native functions where the toString() evaluates to:
     // 'function toString() { [native code] }'
     // So they are not technically the same function, but we are treating them so.
+    // eslint-disable-next-line unicorn/no-uncalled-method
     const promise5 = memoizedFunction(''.toString);
+    // eslint-disable-next-line unicorn/no-uncalled-method
     const promise6 = memoizedFunction([].toString);
 
     assert.equal(promise1, promise2);
@@ -300,23 +302,23 @@ describe('memoize', () => {
     // eslint-disable-next-line @typescript-eslint/no-array-constructor
     assert.equal(await memoizedFunction(new Array()), 2);
 
-    assert.throws(() => memoizedFunction(new WeakMap() as unknown as string), {
+    assert.throws(() => memoizedFunction(new WeakMap()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Map() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Map()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new WeakSet() as unknown as string), {
+    assert.throws(() => memoizedFunction(new WeakSet()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Set() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Set()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Error() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Error()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
