@@ -1,6 +1,6 @@
 # Memoize
 
-Copyright (c) 2023–2025 [Check Digit, LLC](https://checkdigit.com)
+Copyright © 2023-2026 [Check Digit, LLC](https://checkdigit.com)
 
 `@checkdigit/memoize` memoizes async functions, with cache eviction on reject.
 The resulting promise is cached, guaranteeing the underlying function is called at most once for a given set of

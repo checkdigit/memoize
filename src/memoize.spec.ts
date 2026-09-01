@@ -1,7 +1,7 @@
 // memoize.spec.ts
 
 /*
- * Copyright (c) 2023-2025 Check Digit, LLC
+ * Copyright (c) 2023-2026 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
@@ -249,15 +249,29 @@ describe('memoize', () => {
       return argumentList.map((value) => JSON.stringify(value));
     });
 
-    const promise1 = memoizedFunction(() => 0);
-    const promise2 = memoizedFunction(() => 0);
+    // The code below worked on the command line, but not in Wallaby.
+    // const promise1 = memoizedFunction(() => 0);
+    // const promise2 = memoizedFunction(() => 0);
+
+    // This is needed for Wallaby, otherwise the two functions share different
+    // syntactic locations.
+    const createZeroFunction = () => () => 0;
+    const zeroFunction1 = createZeroFunction();
+    const zeroFunction2 = createZeroFunction();
+    assert.notEqual(zeroFunction1, zeroFunction2);
+    assert.equal(zeroFunction1.toString(), zeroFunction2.toString());
+
+    const promise1 = memoizedFunction(zeroFunction1);
+    const promise2 = memoizedFunction(zeroFunction2);
     const promise3 = memoizedFunction({ x: it, y: describe, z: 0 });
     const promise4 = memoizedFunction({ z: 0, y: describe, x: it });
 
     // These are both native functions where the toString() evaluates to:
     // 'function toString() { [native code] }'
     // So they are not technically the same function, but we are treating them so.
+    // eslint-disable-next-line unicorn/no-uncalled-method
     const promise5 = memoizedFunction(''.toString);
+    // eslint-disable-next-line unicorn/no-uncalled-method
     const promise6 = memoizedFunction([].toString);
 
     assert.equal(promise1, promise2);
@@ -300,23 +314,23 @@ describe('memoize', () => {
     // eslint-disable-next-line @typescript-eslint/no-array-constructor
     assert.equal(await memoizedFunction(new Array()), 2);
 
-    assert.throws(() => memoizedFunction(new WeakMap() as unknown as string), {
+    assert.throws(() => memoizedFunction(new WeakMap()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Map() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Map()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new WeakSet() as unknown as string), {
+    assert.throws(() => memoizedFunction(new WeakSet()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Set() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Set()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
-    assert.throws(() => memoizedFunction(new Error() as unknown as string), {
+    assert.throws(() => memoizedFunction(new Error()), {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });

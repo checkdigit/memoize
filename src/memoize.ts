@@ -1,7 +1,7 @@
 // memoize.ts
 
 /*
- * Copyright (c) 2023-2025 Check Digit, LLC
+ * Copyright (c) 2023-2026 Check Digit, LLC
  *
  * This code is licensed under the MIT license (see LICENSE.txt for details).
  */
@@ -41,7 +41,7 @@ export default <Arguments extends Argument[], Return>(
   const seed = crypto.randomUUID();
 
   return (...argumentList) => {
-    const keys = new Set<string | number>();
+    const keys = new Set<string>();
     // eslint-disable-next-line sonarjs/function-return-type
     const converted = JSON.stringify(argumentList, (key, value: Argument) => {
       // create a set of all object keys used in the argument list
@@ -95,14 +95,17 @@ export default <Arguments extends Argument[], Return>(
     });
 
     // create a cache key so that e.g. [{ a: 1, b: 2 }] and [{ b: 2, a: 1 }] map to the same cache entry
-    // eslint-disable-next-line sonarjs/no-alphabetical-sort
-    const cacheKey = JSON.stringify(JSON.parse(converted), [...keys].sort());
+    const cacheKey = JSON.stringify(
+      JSON.parse(converted),
+      // eslint-disable-next-line sonarjs/no-alphabetical-sort, unicorn/require-array-sort-compare -- preserve the default UTF-16 code-unit ordering
+      [...keys].toSorted(),
+    );
 
     let value = cache.get(cacheKey);
     if (value === undefined) {
       value = memoizableFunction(...argumentList);
       cache.set(cacheKey, value);
-      // eslint-disable-next-line @checkdigit/no-promise-instance-method
+      // eslint-disable-next-line @checkdigit/no-promise-instance-method, unicorn/prefer-await -- preserve the cached promise's identity
       value.catch(() => {
         // on a reject, evict key from cache
         cache.delete(cacheKey);
