@@ -36,7 +36,7 @@ export default <Arguments extends Argument[], Return>(
   const cache = new Map<string, Promise<Return>>();
   const symbols = new Map<symbol, string>();
 
-  // use a random seed so the cache key remains unique when serializing BigInts and undefined into strings
+  // use a random seed to distinguish encoded values from ordinary strings
   // eslint-disable-next-line @checkdigit/no-random-v4-uuid
   const seed = crypto.randomUUID();
 
@@ -47,7 +47,6 @@ export default <Arguments extends Argument[], Return>(
       // create a set of all object keys used in the argument list
       keys.add(key);
 
-      // convert BigInts, symbols and undefined to unique strings
       switch (typeof value) {
         case 'bigint': {
           return `${seed}:${value}n`;
@@ -86,7 +85,11 @@ export default <Arguments extends Argument[], Return>(
           throw new TypeError(`Object argument cannot be memoized`);
         }
 
-        case 'number':
+        case 'number': {
+          // JSON.stringify would otherwise serialize all non-finite numbers as null
+          return Number.isFinite(value) ? value : `${seed}:number:${value}`;
+        }
+
         case 'boolean':
         case 'string': {
           return value;

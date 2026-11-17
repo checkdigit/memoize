@@ -193,6 +193,33 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
+  it('distinguishes non-finite numbers from null and strings in cache keys', async () => {
+    const memoizedFunction = memoize(async (argument) => argument);
+    const values = [
+      NaN,
+      Infinity,
+      -Infinity,
+      null,
+      'NaN',
+      'Infinity',
+      '-Infinity',
+    ];
+    const argumentsToTest = values.flatMap((value) => [
+      value,
+      [value],
+      { value },
+    ]);
+
+    const promises = argumentsToTest.map((argument) =>
+      memoizedFunction(argument),
+    );
+    assert.deepEqual(await Promise.all(promises), argumentsToTest);
+
+    for (const [index, argument] of argumentsToTest.entries()) {
+      assert.equal(memoizedFunction(argument), promises[index]);
+    }
+  });
+
   it('supports unique undefined vs null arguments', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
