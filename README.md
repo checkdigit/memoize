@@ -37,10 +37,10 @@ console.log('the results were', value1, value2, value3); // the results were 246
 ## Notes
 
 `Uint8Array`, Node.js `Buffer`, `Date`, `URL`, and all eight built-in `Temporal` value types have type-specific
-cache keys.  Equal values of the same type share a cache entry, including when passed in arrays or as object data
+cache keys. Equal values of the same type share a cache entry, including when passed in arrays or as object data
 properties.
 
-`Uint8Array` and `Buffer` are keyed by their bytes and type.  The corresponding JSON values have
+`Uint8Array` and `Buffer` are keyed by their bytes and type. The corresponding JSON values have
 separate cache entries.
 
 ## License
