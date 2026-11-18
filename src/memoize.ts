@@ -94,11 +94,18 @@ function createStructuralKey(): (argumentList: readonly Argument[]) => string {
             if (Array.isArray(value)) {
               return value as unknown[];
             }
-            // Check the prototype so an own constructor property can be ordinary data.
+            // check the prototype so an own constructor property can be ordinary data.
             const prototype = Reflect.getPrototypeOf(value);
+            const constructor: unknown =
+              prototype === null
+                ? undefined
+                : Reflect.get(prototype, 'constructor', value);
+            // each realm has its own Object constructor with the same native source.
             if (
-              prototype !== null &&
-              Reflect.get(prototype, 'constructor', value) === Object
+              constructor === Object ||
+              (typeof constructor === 'function' &&
+                Function.prototype.toString.call(constructor) ===
+                  Function.prototype.toString.call(Object))
             ) {
               return value;
             }
@@ -177,7 +184,7 @@ export default function memoize<Arguments extends Argument[], Return>(
 ): MemoizableFunction<Arguments, Return>;
 export default function memoize<Arguments extends Argument[], Return, Key>(
   memoizableFunction: MemoizableFunction<Arguments, Return>,
-  options: MemoizeOptions<Arguments, Return, Key>,
+  options?: MemoizeOptions<Arguments, Return, Key>,
 ): MemoizableFunction<Arguments, Return>;
 export default function memoize<Arguments extends Argument[], Return, Key>(
   memoizableFunction: MemoizableFunction<Arguments, Return>,

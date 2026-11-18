@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 
 import { LRUCache } from 'lru-cache';
 
-import memoize from './index.ts';
+import memoize, { type MemoizeOptions } from './index.ts';
 
 describe('memoize', () => {
   it('returns the same value as the underlying function', async () => {
@@ -113,6 +113,17 @@ describe('memoize', () => {
     assert.equal(cache.get(1), first);
     assert.equal(await first, 'first');
     assert.equal(memoizedFunction(1, new Map([['ignored', 2]])), first);
+  });
+
+  it('accepts optional memoize options forwarded by a wrapper', () => {
+    const createMemoized = (
+      options?: MemoizeOptions<[string], string, number>,
+    ) => memoize(async (value: string) => value, options);
+    const structural = createMemoized();
+    const custom = createMemoized({ cacheKey: ([value]) => value.length });
+
+    assert.notEqual(structural('first'), structural('other'));
+    assert.equal(custom('first'), custom('other'));
   });
 
   it('uses structural keys with a custom cache unless a key function is supplied', async () => {
@@ -503,6 +514,10 @@ describe('memoize', () => {
       name: 'TypeError',
       message: 'Object argument cannot be memoized',
     });
+    assert.throws(() => memoizedFunction(Object.create(null) as object), {
+      name: 'TypeError',
+      message: 'Object argument cannot be memoized',
+    });
 
     assert.equal(count, 2);
   });
@@ -797,6 +812,27 @@ describe('memoize', () => {
       const projection = JSON.parse(json) as string | object;
       assert.notEqual(memoizedFunction(projection), promise);
     }
+  });
+
+  it('uses structural keys for plain objects from another realm', () => {
+    const read = memoize(async (value: unknown) => value);
+    const foreign = runInNewContext(
+      '({ date: new Date(123), constructor: "data" })',
+    ) as object;
+    const date = new Date(123);
+    const promise = read({ constructor: 'data', date });
+
+    assert.equal(read(foreign), promise);
+    assert.notEqual(
+      read({ date: date.toISOString(), constructor: 'data' }),
+      promise,
+    );
+
+    const foreignMap = runInNewContext('new Map()') as object;
+    assert.throws(() => read(foreignMap), {
+      name: 'TypeError',
+      message: 'Object argument cannot be memoized',
+    });
   });
 
   it('preserves Temporal fields that default JSON serialization combines or omits', () => {
