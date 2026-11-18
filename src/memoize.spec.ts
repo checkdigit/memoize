@@ -171,6 +171,17 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
+  it('only uses own object properties when sorting cache keys', async () => {
+    const memoizedFunction = memoize(async (value: object, _other: object) =>
+      Object.hasOwn(value, '__proto__'),
+    );
+    const other = { ['__proto__']: null };
+    const withProperty = { ['__proto__']: other };
+
+    assert.equal(await memoizedFunction({}, other), false);
+    assert.equal(await memoizedFunction(withProperty, other), true);
+  });
+
   it('supports bigint arguments', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
@@ -218,6 +229,15 @@ describe('memoize', () => {
     for (const [index, argument] of argumentsToTest.entries()) {
       assert.equal(memoizedFunction(argument), promises[index]);
     }
+  });
+
+  it('distinguishes positive and negative zero in cache keys', async () => {
+    const memoizedFunction = memoize(async (value: number) => 1 / value);
+    const negative = memoizedFunction(-0);
+
+    assert.equal(await memoizedFunction(0), Infinity);
+    assert.equal(await negative, -Infinity);
+    assert.equal(memoizedFunction(-0), negative);
   });
 
   it('supports unique undefined vs null arguments', async () => {
@@ -301,6 +321,17 @@ describe('memoize', () => {
       await memoizedFunction(first, [first], { inObject: second }),
       [1, 1, 2],
     );
+  });
+
+  it('supports plain objects with a constructor data property', async () => {
+    const memoizedFunction = memoize(
+      async (value: { constructor: string }) => value.constructor,
+    );
+    const first = memoizedFunction({ constructor: 'widget' });
+
+    assert.equal(memoizedFunction({ constructor: 'widget' }), first);
+    assert.equal(await first, 'widget');
+    assert.equal(await memoizedFunction({ constructor: 'gadget' }), 'gadget');
   });
 
   it('throw TypeError if passed a non-literal object argument', async () => {
@@ -398,6 +429,103 @@ describe('memoize', () => {
     assert.equal(await promise2, `["${url1}"]`);
     assert.equal(await promise3, `["${url3}"]`);
     assert.equal(count, 2);
+  });
+
+  it('keys Buffer arguments by their bytes and distinguishes their JSON form', async () => {
+    const buffer = Buffer.from([1, 2]);
+    const sameBytes = Buffer.from([0, 1, 2, 3]).subarray(1, 3);
+    const otherBytes = Buffer.from([1, 3]);
+    const memoizedFunction = memoize(async (value: unknown) =>
+      Buffer.isBuffer(value),
+    );
+    const memoizedNested = memoize(async ([{ value }]: [{ value: unknown }]) =>
+      Buffer.isBuffer(value),
+    );
+
+    const promise = memoizedFunction(buffer);
+    assert.equal(memoizedFunction(sameBytes), promise);
+    assert.notEqual(memoizedFunction(otherBytes), promise);
+    assert.equal(await promise, true);
+    assert.equal(await memoizedFunction(buffer.toJSON()), false);
+
+    const nested = memoizedNested([{ value: buffer }]);
+    assert.equal(memoizedNested([{ value: sameBytes }]), nested);
+    assert.equal(await memoizedNested([{ value: buffer.toJSON() }]), false);
+  });
+
+  it('keys Uint8Array arguments by bytes separately from Buffers and plain objects', async () => {
+    const value = new Uint8Array([1, 2]);
+    const sameBytes = new Uint8Array([0, 1, 2, 3]).subarray(1, 3);
+    const memoizedFunction = memoize(async (argument: unknown) => argument);
+
+    const promise = memoizedFunction(value);
+    assert.equal(memoizedFunction(sameBytes), promise);
+    assert.notEqual(memoizedFunction(new Uint8Array([1, 3])), promise);
+    assert.notEqual(memoizedFunction(Buffer.from(value)), promise);
+    assert.notEqual(memoizedFunction({ 0: 1, 1: 2 }), promise);
+    assert.equal(await promise, value);
+  });
+
+  it('uses distinct cache keys for built-in values and their JSON representations', async () => {
+    const createValues = () => [
+      new Date(123),
+      new Date(NaN),
+      new URL('https://example.com/'),
+      Temporal.Instant.from('1970-01-01T00:00:00.123Z'),
+      Temporal.Instant.from('1970-01-01T00:00:00.123000001Z'),
+      Temporal.PlainDate.from('2026-11-18'),
+      Temporal.PlainDateTime.from('2026-11-18T12:30:00'),
+      Temporal.PlainTime.from('12:30:00'),
+      Temporal.PlainYearMonth.from('2026-11'),
+      Temporal.PlainMonthDay.from('11-18'),
+      Temporal.Duration.from('PT1S'),
+      Temporal.ZonedDateTime.from('2026-11-18T12:30:00[UTC]'),
+      Temporal.ZonedDateTime.from('2026-11-18T13:30:00[Europe/Paris]'),
+    ];
+    const values = createValues();
+    const equivalents = createValues();
+    const serialized = values.map((value) => value.toJSON());
+    const memoizedFunction = memoize(async (argument: unknown) => argument);
+    const memoizedNested = memoize(
+      async (argument: { values: unknown[] }) => argument,
+    );
+
+    for (const [index, value] of values.entries()) {
+      const promise = memoizedFunction(value);
+      assert.equal(memoizedFunction(equivalents[index]), promise);
+      assert.notEqual(memoizedFunction(serialized[index]), promise);
+    }
+    assert.equal(new Set(values.map(memoizedFunction)).size, values.length);
+
+    const nestedPromise = memoizedNested({ values });
+    assert.equal(memoizedNested({ values: equivalents }), nestedPromise);
+    assert.notEqual(memoizedNested({ values: serialized }), nestedPromise);
+    assert.equal((await nestedPromise).values, values);
+  });
+
+  it('preserves Temporal fields that default JSON serialization combines or omits', () => {
+    const duration = memoize(
+      async (value: Temporal.Duration) => value.milliseconds,
+    );
+    const yearMonth = memoize(async (value: Temporal.PlainYearMonth) => value);
+    const monthDay = memoize(async (value: Temporal.PlainMonthDay) => value);
+
+    assert.notEqual(
+      duration(Temporal.Duration.from({ seconds: 1 })),
+      duration(Temporal.Duration.from({ milliseconds: 1000 })),
+    );
+    assert.notEqual(
+      duration(Temporal.Duration.from({ milliseconds: 1 })),
+      duration(Temporal.Duration.from({ microseconds: 1000 })),
+    );
+    assert.notEqual(
+      yearMonth(new Temporal.PlainYearMonth(2026, 11, 'iso8601', 1)),
+      yearMonth(new Temporal.PlainYearMonth(2026, 11, 'iso8601', 2)),
+    );
+    assert.notEqual(
+      monthDay(new Temporal.PlainMonthDay(11, 18, 'iso8601', 2025)),
+      monthDay(new Temporal.PlainMonthDay(11, 18, 'iso8601', 2026)),
+    );
   });
 
   it('throw TypeError if passed a circular object argument', async () => {

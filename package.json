@@ -1,6 +1,6 @@
 {
   "name": "@checkdigit/memoize",
-  "version": "4.0.1",
+  "version": "5.0.0",
   "description": "Memoizing async functions with cache eviction on reject",
   "homepage": "https://github.com/checkdigit/memoize#readme",
   "bugs": {
@@ -56,6 +56,6 @@
     "@checkdigit/typescript-config": "^10.2.2"
   },
   "engines": {
-    "node": ">=24.21.0"
+    "node": ">=26.13.0"
   }
 }
