@@ -35,16 +35,9 @@ function createStructuralKey(): (argumentList: readonly Argument[]) => string {
 
   // use a random seed to distinguish encoded values from ordinary strings
   const seed = crypto.getRandomValues(new Uint32Array(4)).join('-');
-  let referenceId = 0;
 
-  function getReferenceId(value: object | symbol): number {
-    let id = referenceIds.get(value);
-    if (id === undefined) {
-      id = ++referenceId;
-      referenceIds.set(value, id);
-    }
-    return id;
-  }
+  let referenceId = 0;
+  const nextReferenceId = () => ++referenceId;
 
   return (argumentList) => {
     const converted = JSON.stringify(
@@ -79,11 +72,11 @@ function createStructuralKey(): (argumentList: readonly Argument[]) => string {
             if (registeredKey !== undefined) {
               return `${seed}:symbol:registered:${registeredKey}`;
             }
-            return `${seed}:symbol:${getReferenceId(value)}`;
+            return `${seed}:symbol:${referenceIds.getOrInsertComputed(value, nextReferenceId)}`;
           }
 
           case 'function': {
-            return `${seed}:function:${getReferenceId(value)}`;
+            return `${seed}:function:${referenceIds.getOrInsertComputed(value, nextReferenceId)}`;
           }
 
           case 'object': {
