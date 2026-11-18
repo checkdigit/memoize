@@ -148,11 +148,14 @@ describe('memoize', () => {
     const first = readUser('first');
     const second = readUser('second');
     assert.equal(await first, 'first');
+    // reading first again makes second the least recently used entry.
     assert.equal(readUser('first'), first);
     assert.equal(await readUser('third'), 'third');
 
     assert.equal(cache.size, 2);
+    assert.equal(cache.has('first'), true);
     assert.equal(cache.has('second'), false);
+    assert.equal(cache.has('third'), true);
     assert.equal(readUser('first'), first);
     assert.notEqual(readUser('second'), second);
   });

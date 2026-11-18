@@ -81,7 +81,6 @@ const readUser = memoize(getUser, {
 });
 ```
 
-
 ## License
 
 MIT
