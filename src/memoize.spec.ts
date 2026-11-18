@@ -193,6 +193,33 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
+  it('distinguishes non-finite numbers from null and strings in cache keys', async () => {
+    const memoizedFunction = memoize(async (argument) => argument);
+    const values = [
+      NaN,
+      Infinity,
+      -Infinity,
+      null,
+      'NaN',
+      'Infinity',
+      '-Infinity',
+    ];
+    const argumentsToTest = values.flatMap((value) => [
+      value,
+      [value],
+      { value },
+    ]);
+
+    const promises = argumentsToTest.map((argument) =>
+      memoizedFunction(argument),
+    );
+    assert.deepEqual(await Promise.all(promises), argumentsToTest);
+
+    for (const [index, argument] of argumentsToTest.entries()) {
+      assert.equal(memoizedFunction(argument), promises[index]);
+    }
+  });
+
   it('supports unique undefined vs null arguments', async () => {
     let count = 0;
     const memoizedFunction = memoize(async (...argumentList) => {
@@ -242,53 +269,38 @@ describe('memoize', () => {
     assert.equal(count, 3);
   });
 
-  it('support function arguments', async () => {
-    let count = 0;
-    const memoizedFunction = memoize(async (...argumentList) => {
-      count += 1;
-      return argumentList.map((value) => JSON.stringify(value));
-    });
+  it('uses function identity for direct and nested arguments', async () => {
+    type Callback = () => number;
+    const memoizedFunction = memoize(
+      async (
+        direct: Callback,
+        [inArray]: [Callback],
+        { inObject }: { inObject: Callback },
+      ) => [direct(), inArray(), inObject()],
+    );
+    const createCallback = (value: number) => () => value;
+    const first = createCallback(1);
+    const second = createCallback(2);
+    assert.equal(first.toString(), second.toString());
 
-    // The code below worked on the command line, but not in Wallaby.
-    // const promise1 = memoizedFunction(() => 0);
-    // const promise2 = memoizedFunction(() => 0);
-
-    // This is needed for Wallaby, otherwise the two functions share different
-    // syntactic locations.
-    const createZeroFunction = () => () => 0;
-    const zeroFunction1 = createZeroFunction();
-    const zeroFunction2 = createZeroFunction();
-    assert.notEqual(zeroFunction1, zeroFunction2);
-    assert.equal(zeroFunction1.toString(), zeroFunction2.toString());
-
-    const promise1 = memoizedFunction(zeroFunction1);
-    const promise2 = memoizedFunction(zeroFunction2);
-    const promise3 = memoizedFunction({ x: it, y: describe, z: 0 });
-    const promise4 = memoizedFunction({ z: 0, y: describe, x: it });
-
-    // These are both native functions where the toString() evaluates to:
-    // 'function toString() { [native code] }'
-    // So they are not technically the same function, but we are treating them so.
-    // eslint-disable-next-line unicorn/no-uncalled-method
-    const promise5 = memoizedFunction(''.toString);
-    // eslint-disable-next-line unicorn/no-uncalled-method
-    const promise6 = memoizedFunction([].toString);
-
-    assert.equal(promise1, promise2);
-    assert.equal(promise3, promise4);
-    assert.equal(promise5, promise6);
-    assert.notEqual(promise1, promise3);
-    assert.notEqual(promise2, promise4);
-    assert.notEqual(promise4, promise6);
-
-    assert.deepEqual(await promise1, [undefined]);
-    assert.deepEqual(await promise2, [undefined]);
-    assert.deepEqual(await promise3, ['{"z":0}']);
-    assert.deepEqual(await promise4, ['{"z":0}']);
-    assert.deepEqual(await promise5, [undefined]);
-    assert.deepEqual(await promise6, [undefined]);
-
-    assert.equal(count, 3);
+    const firstPromise = memoizedFunction(first, [first], { inObject: first });
+    assert.equal(
+      memoizedFunction(first, [first], { inObject: first }),
+      firstPromise,
+    );
+    assert.deepEqual(await firstPromise, [1, 1, 1]);
+    assert.deepEqual(
+      await memoizedFunction(second, [first], { inObject: first }),
+      [2, 1, 1],
+    );
+    assert.deepEqual(
+      await memoizedFunction(first, [second], { inObject: first }),
+      [1, 2, 1],
+    );
+    assert.deepEqual(
+      await memoizedFunction(first, [first], { inObject: second }),
+      [1, 1, 2],
+    );
   });
 
   it('throw TypeError if passed a non-literal object argument', async () => {
