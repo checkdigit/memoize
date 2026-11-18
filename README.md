@@ -74,10 +74,10 @@ Install `lru-cache` alongside `@checkdigit/memoize`. Given an async `getUser(id)
 import memoize from '@checkdigit/memoize';
 import { LRUCache } from 'lru-cache';
 
-const readUser = memoize(getUser, {
+const user = memoize(getUser, {
   cacheKey: ([id]) => id,
   // cache keeps up to 500 entries. 60-second TTL starts when the promise is inserted.
-  cache: new LRUCache<string, Promise<User>>({ max: 500, ttl: 60_000 }),
+  cache: new LRUCache({ max: 500, ttl: 60_000 }),
 });
 ```
 
