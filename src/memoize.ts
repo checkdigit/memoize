@@ -35,6 +35,7 @@ export default <Arguments extends Argument[], Return>(
 ): MemoizableFunction<Arguments, Return> => {
   const cache = new Map<string, Promise<Return>>();
   const symbols = new Map<symbol, string>();
+  const functionKeys = new WeakMap<object, string>();
 
   // use a random seed to distinguish encoded values from ordinary strings
   // eslint-disable-next-line @checkdigit/no-random-v4-uuid
@@ -67,7 +68,13 @@ export default <Arguments extends Argument[], Return>(
         }
 
         case 'function': {
-          return `${seed}:function:${value.toString()}`;
+          let functionKey = functionKeys.get(value);
+          if (functionKey === undefined) {
+            // eslint-disable-next-line @checkdigit/no-random-v4-uuid
+            functionKey = `${seed}:function:${crypto.randomUUID()}`;
+            functionKeys.set(value, functionKey);
+          }
+          return functionKey;
         }
 
         case 'object': {
