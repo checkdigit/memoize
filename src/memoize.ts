@@ -1,11 +1,5 @@
 // memoize.ts
 
-/*
- * Copyright (c) 2023-2026 Check Digit, LLC
- *
- * This code is licensed under the MIT license (see LICENSE.txt for details).
- */
-
 import builtInKey from './built-in-key.ts';
 
 // arguments must be stringify-able
@@ -18,6 +12,7 @@ export type MemoizableFunction<Arguments extends Argument[], Return> = (
 
 export interface MemoizeCache<Key, Return> {
   get: (key: Key) => Promise<Return> | undefined;
+  peek?: (key: Key) => Promise<Return> | undefined;
   set: (key: Key, value: Promise<Return>) => void;
   delete: (key: Key) => void;
 }
@@ -36,12 +31,20 @@ export type MemoizeOptions<Arguments extends Argument[], Return, Key = string> =
   StructuralCacheOptions<Return> | CustomKeyOptions<Arguments, Return, Key>;
 
 function createStructuralKey(): (argumentList: readonly Argument[]) => string {
-  const symbols = new Map<symbol, string>();
-  const functionKeys = new WeakMap<object, string>();
+  const referenceIds = new WeakMap<object | symbol, number>();
 
   // use a random seed to distinguish encoded values from ordinary strings
   const seed = crypto.getRandomValues(new Uint32Array(4)).join('-');
   let referenceId = 0;
+
+  function getReferenceId(value: object | symbol): number {
+    let id = referenceIds.get(value);
+    if (id === undefined) {
+      id = ++referenceId;
+      referenceIds.set(value, id);
+    }
+    return id;
+  }
 
   return (argumentList) => {
     const converted = JSON.stringify(
@@ -72,21 +75,15 @@ function createStructuralKey(): (argumentList: readonly Argument[]) => string {
           }
 
           case 'symbol': {
-            let symbolUniqueStringValue = symbols.get(value);
-            if (symbolUniqueStringValue === undefined) {
-              symbolUniqueStringValue = `${seed}:symbol:${++referenceId}`;
-              symbols.set(value, symbolUniqueStringValue);
+            const registeredKey = Symbol.keyFor(value);
+            if (registeredKey !== undefined) {
+              return `${seed}:symbol:registered:${registeredKey}`;
             }
-            return symbolUniqueStringValue;
+            return `${seed}:symbol:${getReferenceId(value)}`;
           }
 
           case 'function': {
-            let functionKey = functionKeys.get(value);
-            if (functionKey === undefined) {
-              functionKey = `${seed}:function:${++referenceId}`;
-              functionKeys.set(value, functionKey);
-            }
-            return functionKey;
+            return `${seed}:function:${getReferenceId(value)}`;
           }
 
           case 'object': {
@@ -154,7 +151,9 @@ function memoizeWithKey<Arguments extends Argument[], Return, Key>(
     promise.catch(() => {
       try {
         // custom cache may have evicted this promise and stored a newer one.
-        if (cache.get(key) === promise) {
+        const current =
+          cache.peek === undefined ? cache.get(key) : cache.peek(key);
+        if (current === promise) {
           cache.delete(key);
         }
       } catch {

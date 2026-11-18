@@ -1,11 +1,5 @@
 // memoize.spec.ts
 
-/*
- * Copyright (c) 2023-2026 Check Digit, LLC
- *
- * This code is licensed under the MIT license (see LICENSE.txt for details).
- */
-
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { runInNewContext } from 'node:vm';
@@ -176,6 +170,30 @@ describe('memoize', () => {
     pending.reject(new Error('evicted promise failed'));
     await assert.rejects(evicted, /evicted promise failed/u);
     assert.equal(memoizedFunction(), replacement);
+  });
+
+  it('preserves LRU order when an evicted promise rejects', async () => {
+    const pending = Promise.withResolvers<string>();
+    const cache = new LRUCache<string, Promise<string>>({ max: 2 });
+    let result = pending.promise;
+    const read = memoize(
+      (id: string) => (id === 'old' ? result : Promise.resolve(id)),
+      {
+        cacheKey: ([id]) => id,
+        cache,
+      },
+    );
+
+    const evicted = read('old');
+    cache.delete('old');
+    result = Promise.resolve('replacement');
+    await read('old');
+    await read('recent');
+    pending.reject(new Error('evicted promise failed'));
+    await assert.rejects(evicted, /evicted promise failed/u);
+
+    await read('new');
+    assert.deepEqual(cache.keys().toArray(), ['new', 'recent']);
   });
 
   it('preserves the original rejection when a custom cache fails to delete it', async () => {
@@ -384,6 +402,17 @@ describe('memoize', () => {
     assert.equal(await promise3, '[null,null]');
     assert.equal(await promise4, '[null,null]');
     assert.equal(count, 3);
+  });
+
+  it('distinguishes registered symbols from local symbols and strings', async () => {
+    const read = memoize(async (value: symbol | string) => value);
+    const symbol = Symbol.for('memoize-test');
+    const promise = read(symbol);
+
+    assert.equal(read(Symbol.for('memoize-test')), promise);
+    assert.notEqual(read(Symbol('memoize-test')), promise);
+    assert.notEqual(read('memoize-test'), promise);
+    assert.equal(await promise, symbol);
   });
 
   it('uses function identity for direct and nested arguments', async () => {
@@ -705,6 +734,37 @@ describe('memoize', () => {
 
     assert.equal(memoizedFunction(project({})), promise);
     assert.equal(memoizedFunction(project(new Temporal.Instant(0n))), promise);
+  });
+
+  it('uses object projections when a proxy overrides a binary value', () => {
+    const read = memoize(async (value: unknown) => value);
+    const project = (value: Uint8Array, projected: object) =>
+      new Proxy(
+        { value },
+        {
+          get: (_target, key) => (key === 'value' ? projected : undefined),
+        },
+      );
+    const first = { label: 'first' };
+    const second = { label: 'second' };
+    const bytes = new Uint8Array([1, 2]);
+    assert.equal(read(project(bytes, first)), read({ value: first }));
+    assert.equal(read(project(bytes, second)), read({ value: second }));
+
+    const buffer = Buffer.from(bytes);
+    const projections = [
+      first,
+      { type: 'Buffer', data: '1,2' },
+      { type: 'Buffer', data: [1, 2], label: 'extra field' },
+      { type: 'Buffer', data: [1] },
+      { type: 'Buffer', data: [1, 3] },
+    ];
+    for (const projected of projections) {
+      assert.equal(
+        read(project(buffer, projected)),
+        read({ value: projected }),
+      );
+    }
   });
 
   it('recognizes built-in values from another realm', () => {

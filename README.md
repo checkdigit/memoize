@@ -47,7 +47,8 @@ separate cache entries.
 
 Pass `cacheKey` to compute a key from the full argument list. A custom key skips structural serialization and
 can use any value your cache accepts. Pass `cache` to use a synchronous store with `get`, `set`, and `delete`
-methods. The store holds the original promises and returns `undefined` on a miss.
+methods. The store holds the original promises and returns `undefined` on a miss. If the store provides `peek`,
+rejection cleanup uses it to read entries without changing their recency or TTL.
 
 ```ts
 const cache = new Map<number, Promise<string>>();

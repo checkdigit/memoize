@@ -1,11 +1,5 @@
 // built-in-key.ts
 
-/*
- * Copyright (c) 2023-2026 Check Digit, LLC
- *
- * This code is licensed under the MIT license (see LICENSE.txt for details).
- */
-
 // use the built-in prototypes to find each type's default toJSON method.
 const jsonValueTypes = [
   ['Date', Date.prototype],
@@ -55,8 +49,46 @@ function hasDefaultToJSON(
   );
 }
 
+// verify Buffer projection matches the bytes of the original value.
+function isMatchingBufferJSON(
+  original: Uint8Array,
+  serialized: object,
+): boolean {
+  const type: unknown = Object.getOwnPropertyDescriptor(
+    serialized,
+    'type',
+  )?.value;
+  const data: unknown = Object.getOwnPropertyDescriptor(
+    serialized,
+    'data',
+  )?.value;
+  const length = Reflect.get(
+    Object.getPrototypeOf(Uint8Array.prototype) as object,
+    'length',
+    original,
+  ) as number;
+  if (
+    type !== 'Buffer' ||
+    !Array.isArray(data) ||
+    Object.keys(serialized).length !== 2 ||
+    data.length !== length
+  ) {
+    return false;
+  }
+
+  for (let index = 0; index < length; index += 1) {
+    if (!Object.is(original[index], data[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // key Buffers and Uint8Arrays by their type and bytes.
-function binaryValueKey(original: object): string | undefined {
+function binaryValueKey(
+  original: object,
+  serialized: object,
+): string | undefined {
   if (!ArrayBuffer.isView(original)) {
     return undefined;
   }
@@ -68,6 +100,13 @@ function binaryValueKey(original: object): string | undefined {
       ? Object.getOwnPropertyDescriptor(bufferPrototype, 'toJSON')?.value
       : undefined;
   if (!hasDefaultToJSON(toJSONPrototype(original), serializer)) {
+    return undefined;
+  }
+  if (
+    isBuffer
+      ? !isMatchingBufferJSON(original, serialized)
+      : original !== serialized
+  ) {
     return undefined;
   }
 
@@ -96,7 +135,7 @@ export default function builtInKey(
   }
 
   if (typeof serialized === 'object' && serialized !== null) {
-    return binaryValueKey(original);
+    return binaryValueKey(original, serialized);
   }
 
   const prototype = toJSONPrototype(original);
