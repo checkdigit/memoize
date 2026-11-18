@@ -16,6 +16,7 @@ describe('memoize', () => {
   it('returns the same value as the underlying function', async () => {
     assert.equal(await memoize(async () => 123)(), 123);
     assert.equal(await memoize(async (argument) => argument)(456), 456);
+    assert.equal(await memoize(async (argument) => argument)(false), false);
   });
 
   it('returns different rejected promise (delayed) given the same arguments', async () => {
@@ -467,6 +468,34 @@ describe('memoize', () => {
     assert.equal(await promise, value);
   });
 
+  it('keys Uint8Array values without a global Buffer', async () => {
+    const memoizedFunction = memoize(async (value: Uint8Array) => value.length);
+    const value = new Uint8Array([1, 2]);
+    const bufferDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'Buffer',
+    );
+    assert.ok(bufferDescriptor);
+
+    Object.defineProperty(globalThis, 'Buffer', { value: undefined });
+    let promise: Promise<number>;
+    try {
+      promise = memoizedFunction(value);
+      assert.equal(memoizedFunction(new Uint8Array([1, 2])), promise);
+    } finally {
+      Object.defineProperty(globalThis, 'Buffer', bufferDescriptor);
+    }
+    assert.equal(await promise, 2);
+  });
+
+  it('rejects typed arrays other than Uint8Array', () => {
+    const memoizedFunction = memoize(async (value: object) => value);
+    assert.throws(() => memoizedFunction(new Int16Array([1, 2])), {
+      name: 'TypeError',
+      message: 'Object argument cannot be memoized',
+    });
+  });
+
   it('uses distinct cache keys for built-in values and their JSON representations', async () => {
     const createValues = () => [
       new Date(123),
@@ -538,6 +567,49 @@ describe('memoize', () => {
     assert.equal(await readDate(new LabeledDate('second')), 'second');
     assert.equal(await readBytes(labeledBytes('first')), 'first');
     assert.equal(await readBytes(labeledBytes('second')), 'second');
+  });
+
+  it('uses custom JSON projections for date-like objects', () => {
+    const memoizedFunction = memoize(async (value: unknown) => value);
+    const dateWithCustomFormat = Object.assign(new Date(0), {
+      toISOString: () => 'custom date format',
+    });
+    const dateLike = Object.create(Date.prototype, {
+      valueOf: { value: () => 0 },
+      toISOString: { value: () => 'date-like projection' },
+    }) as object;
+    const custom = Object.create({
+      [Symbol.toStringTag]: 'Custom',
+      toJSON: () => 'custom type projection',
+    }) as object;
+
+    assert.equal(
+      memoizedFunction(dateWithCustomFormat),
+      memoizedFunction('custom date format'),
+    );
+    assert.equal(
+      memoizedFunction(dateLike),
+      memoizedFunction('date-like projection'),
+    );
+    assert.equal(
+      memoizedFunction(custom),
+      memoizedFunction('custom type projection'),
+    );
+  });
+
+  it('uses the serialized value when a proxy getter overrides the descriptor value', () => {
+    const memoizedFunction = memoize(async (value: unknown) => value);
+    const project = (value: object) =>
+      new Proxy(
+        { value },
+        {
+          get: (_target, key) => (key === 'value' ? 'projected' : undefined),
+        },
+      );
+    const promise = memoizedFunction({ value: 'projected' });
+
+    assert.equal(memoizedFunction(project({})), promise);
+    assert.equal(memoizedFunction(project(new Temporal.Instant(0n))), promise);
   });
 
   it('recognizes built-in values from another realm', () => {
