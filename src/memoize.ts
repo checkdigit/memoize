@@ -16,17 +16,26 @@ export type MemoizableFunction<Arguments extends Argument[], Return> = (
   ...argumentList: Arguments
 ) => Promise<Return>;
 
-/**
- * Memoize an async function.  The promise is cached, not the value.  This guarantees the underlying function is
- * called at most once for a given set of arguments, unless the promise is rejected.
- * If the promise is rejected, it will be removed from the memoize cache.  This allows the function to be retried.
- *
- * @param memoizableFunction async function to memoize
- */
-export default <Arguments extends Argument[], Return>(
-  memoizableFunction: MemoizableFunction<Arguments, Return>,
-): MemoizableFunction<Arguments, Return> => {
-  const cache = new Map<string, Promise<Return>>();
+export interface MemoizeCache<Key, Return> {
+  get: (key: Key) => Promise<Return> | undefined;
+  set: (key: Key, value: Promise<Return>) => void;
+  delete: (key: Key) => void;
+}
+
+interface StructuralCacheOptions<Return> {
+  cacheKey?: undefined;
+  cache?: MemoizeCache<string, NoInfer<Return>>;
+}
+
+interface CustomKeyOptions<Arguments extends Argument[], Return, Key> {
+  cacheKey: (argumentList: Readonly<Arguments>) => Key;
+  cache?: MemoizeCache<Key, NoInfer<Return>>;
+}
+
+export type MemoizeOptions<Arguments extends Argument[], Return, Key = string> =
+  StructuralCacheOptions<Return> | CustomKeyOptions<Arguments, Return, Key>;
+
+function createStructuralKey(): (argumentList: readonly Argument[]) => string {
   const symbols = new Map<symbol, string>();
   const functionKeys = new WeakMap<object, string>();
 
@@ -34,7 +43,7 @@ export default <Arguments extends Argument[], Return>(
   const seed = crypto.getRandomValues(new Uint32Array(4)).join('-');
   let referenceId = 0;
 
-  return (...argumentList) => {
+  return (argumentList) => {
     const converted = JSON.stringify(
       argumentList,
       // eslint-disable-next-line sonarjs/function-return-type
@@ -116,33 +125,73 @@ export default <Arguments extends Argument[], Return>(
     );
 
     // sort each object's own keys while preserving array order.
-    const cacheKey = JSON.stringify(
-      JSON.parse(converted),
-      (_, value: unknown) => {
-        if (
-          value === null ||
-          typeof value !== 'object' ||
-          Array.isArray(value)
-        ) {
-          return value;
-        }
-        const record = value as Record<string, unknown>;
-        // eslint-disable-next-line sonarjs/no-alphabetical-sort, unicorn/require-array-sort-compare -- use default UTF-16 code-unit ordering
-        const keys = Object.keys(record).toSorted();
-        return Object.fromEntries(keys.map((key) => [key, record[key]]));
-      },
-    );
-
-    let value = cache.get(cacheKey);
-    if (value === undefined) {
-      value = memoizableFunction(...argumentList);
-      cache.set(cacheKey, value);
-      // eslint-disable-next-line @checkdigit/no-promise-instance-method, unicorn/prefer-await -- preserve the cached promise's identity
-      value.catch(() => {
-        // on a reject, evict key from cache
-        cache.delete(cacheKey);
-      });
-    }
-    return value;
+    return JSON.stringify(JSON.parse(converted), (_, value: unknown) => {
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+      }
+      const record = value as Record<string, unknown>;
+      // eslint-disable-next-line sonarjs/no-alphabetical-sort, unicorn/require-array-sort-compare -- use default UTF-16 code-unit ordering
+      const keys = Object.keys(record).toSorted();
+      return Object.fromEntries(keys.map((key) => [key, record[key]]));
+    });
   };
-};
+}
+
+function memoizeWithKey<Arguments extends Argument[], Return, Key>(
+  memoizableFunction: MemoizableFunction<Arguments, Return>,
+  keyFor: (arguments_: Arguments) => Key,
+  cache: MemoizeCache<Key, Return> = new Map<Key, Promise<Return>>(),
+): MemoizableFunction<Arguments, Return> {
+  return (...argumentList) => {
+    const key = keyFor(argumentList);
+    const cached = cache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const promise = memoizableFunction(...argumentList);
+    // eslint-disable-next-line @checkdigit/no-promise-instance-method, unicorn/prefer-await -- preserve the cached promise's identity
+    promise.catch(() => {
+      try {
+        // custom cache may have evicted this promise and stored a newer one.
+        if (cache.get(key) === promise) {
+          cache.delete(key);
+        }
+      } catch {
+        // cache error during cleanup must not create a second rejection.
+      }
+    });
+    cache.set(key, promise);
+    return promise;
+  };
+}
+
+/**
+ * Memoizes an async function by caching its original promise until eviction or rejection.
+ *
+ * @param memoizableFunction Async function to memoize.
+ * @param options Optional key function and synchronous cache.
+ */
+export default function memoize<Arguments extends Argument[], Return>(
+  memoizableFunction: MemoizableFunction<Arguments, Return>,
+  options?: StructuralCacheOptions<Return>,
+): MemoizableFunction<Arguments, Return>;
+export default function memoize<Arguments extends Argument[], Return, Key>(
+  memoizableFunction: MemoizableFunction<Arguments, Return>,
+  options: MemoizeOptions<Arguments, Return, Key>,
+): MemoizableFunction<Arguments, Return>;
+export default function memoize<Arguments extends Argument[], Return, Key>(
+  memoizableFunction: MemoizableFunction<Arguments, Return>,
+  options: MemoizeOptions<Arguments, Return, Key> = {},
+): MemoizableFunction<Arguments, Return> {
+  const { cacheKey, cache } = options;
+  if (cacheKey === undefined) {
+    return memoizeWithKey(memoizableFunction, createStructuralKey(), cache);
+  }
+
+  return memoizeWithKey(
+    memoizableFunction,
+    (argumentList) => cacheKey([...argumentList]),
+    cache,
+  );
+}

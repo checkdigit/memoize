@@ -10,6 +10,8 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import { LRUCache } from 'lru-cache';
+
 import memoize from './index.ts';
 
 describe('memoize', () => {
@@ -101,6 +103,96 @@ describe('memoize', () => {
       'hello 3',
     ]);
     assert.equal(count, 3);
+  });
+
+  it('uses a custom key for arguments that cannot be structurally serialized', async () => {
+    const first = Promise.resolve('first');
+    const second = Promise.resolve('second');
+    const cache = new Map<number, Promise<string>>();
+    const memoizedFunction = memoize(
+      (id: number, _data: Map<string, number>) => (id === 1 ? first : second),
+      { cacheKey: ([id]) => id, cache },
+    );
+
+    assert.equal(memoizedFunction(1, new Map()), first);
+    assert.equal(memoizedFunction(2, new Map()), second);
+    assert.equal(cache.get(1), first);
+    assert.equal(await first, 'first');
+    assert.equal(memoizedFunction(1, new Map([['ignored', 2]])), first);
+  });
+
+  it('uses structural keys with a custom cache unless a key function is supplied', async () => {
+    const cache = new Map<string, Promise<number>>();
+    const memoizedFunction = memoize(
+      async (value: { a: number; b: number }) => value.a + value.b,
+      { cache },
+    );
+    const promise = memoizedFunction({ a: 1, b: 2 });
+    assert.equal(memoizedFunction({ b: 2, a: 1 }), promise);
+    assert.equal(await promise, 3);
+
+    cache.clear();
+    assert.notEqual(memoizedFunction({ a: 1, b: 2 }), promise);
+  });
+
+  it('reuses recent promises and recomputes evicted entries with lru-cache', async () => {
+    const cache = new LRUCache<string, Promise<string>>({
+      max: 2,
+      ttl: 60_000,
+    });
+    const readUser = memoize(async (id: string) => id, {
+      cacheKey: ([id]) => id,
+      cache,
+    });
+
+    const first = readUser('first');
+    const second = readUser('second');
+    assert.equal(await first, 'first');
+    assert.equal(readUser('first'), first);
+    assert.equal(await readUser('third'), 'third');
+
+    assert.equal(cache.size, 2);
+    assert.equal(cache.has('second'), false);
+    assert.equal(readUser('first'), first);
+    assert.notEqual(readUser('second'), second);
+  });
+
+  it('preserves a replacement cache entry when an evicted promise rejects', async () => {
+    const pending = Promise.withResolvers<number>();
+    const cache = new Map<number, Promise<number>>();
+    let result = pending.promise;
+    const memoizedFunction = memoize(() => result, {
+      cacheKey: () => 1,
+      cache,
+    });
+    const evicted = memoizedFunction();
+    cache.delete(1);
+    result = Promise.resolve(2);
+    const replacement = memoizedFunction();
+
+    pending.reject(new Error('evicted promise failed'));
+    await assert.rejects(evicted, /evicted promise failed/u);
+    assert.equal(memoizedFunction(), replacement);
+  });
+
+  it('preserves the original rejection when a custom cache fails to delete it', async () => {
+    const cache = new Map<string, Promise<never>>();
+    const memoizedFunction = memoize(
+      async () => {
+        throw new Error('original failure');
+      },
+      {
+        cache: {
+          get: (key) => cache.get(key),
+          set: (key, value) => cache.set(key, value),
+          delete: () => {
+            throw new Error('cache cleanup failed');
+          },
+        },
+      },
+    );
+
+    await assert.rejects(memoizedFunction(), /original failure/u);
   });
 
   it('returns the same promise for identical object arguments', async () => {
