@@ -8,6 +8,7 @@
 
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import memoize from './index.ts';
 
@@ -501,6 +502,74 @@ describe('memoize', () => {
     assert.equal(memoizedNested({ values: equivalents }), nestedPromise);
     assert.notEqual(memoizedNested({ values: serialized }), nestedPromise);
     assert.equal((await nestedPromise).values, values);
+  });
+
+  it('uses inherited custom toJSON projections for cache keys', async () => {
+    class LabeledDate extends Date {
+      readonly label: string;
+
+      constructor(label: string) {
+        super(0);
+        this.label = label;
+      }
+
+      override toJSON() {
+        return this.label;
+      }
+    }
+
+    const bytePrototype = {
+      toJSON(this: { label: string }) {
+        return { label: this.label };
+      },
+    };
+    Reflect.setPrototypeOf(bytePrototype, Uint8Array.prototype);
+    const labeledBytes = (label: string) => {
+      const bytes = Object.assign(new Uint8Array([1, 2]), { label });
+      Reflect.setPrototypeOf(bytes, bytePrototype);
+      return bytes;
+    };
+
+    const readDate = memoize(async (value: LabeledDate) => value.label);
+    const readBytes = memoize(
+      async (value: ReturnType<typeof labeledBytes>) => value.label,
+    );
+    assert.equal(await readDate(new LabeledDate('first')), 'first');
+    assert.equal(await readDate(new LabeledDate('second')), 'second');
+    assert.equal(await readBytes(labeledBytes('first')), 'first');
+    assert.equal(await readBytes(labeledBytes('second')), 'second');
+  });
+
+  it('recognizes built-in values from another realm', () => {
+    const createValues = `[
+      new Uint8Array([1, 2]),
+      new Date(123),
+      Temporal.Instant.fromEpochMilliseconds(123),
+      Temporal.PlainDate.from('2026-11-18'),
+      Temporal.PlainDateTime.from('2026-11-18T12:30:00'),
+      Temporal.PlainTime.from('12:30:00'),
+      Temporal.PlainYearMonth.from('2026-11'),
+      Temporal.PlainMonthDay.from('11-18'),
+      Temporal.Duration.from({ milliseconds: 1000 }),
+      Temporal.ZonedDateTime.from('2026-11-18T12:30:00[UTC]'),
+    ]`;
+    // eslint-disable-next-line sonarjs/code-eval -- fixed test fixture, evaluated with local constructors
+    const localValues = runInNewContext(createValues, {
+      Uint8Array,
+      Date,
+      Temporal,
+    }) as object[];
+    // eslint-disable-next-line sonarjs/code-eval -- fixed test fixture, evaluated with foreign constructors
+    const foreignValues = runInNewContext(createValues) as object[];
+    const memoizedFunction = memoize(async (value: unknown) => value);
+
+    for (const [index, value] of foreignValues.entries()) {
+      const promise = memoizedFunction(value);
+      assert.equal(memoizedFunction(localValues[index]), promise);
+      const json = JSON.stringify(value);
+      const projection = JSON.parse(json) as string | object;
+      assert.notEqual(memoizedFunction(projection), promise);
+    }
   });
 
   it('preserves Temporal fields that default JSON serialization combines or omits', () => {
