@@ -1,6 +1,6 @@
 {
   "name": "@checkdigit/memoize",
-  "version": "4.0.1",
+  "version": "5.0.0",
   "description": "Memoizing async functions with cache eviction on reject",
   "homepage": "https://github.com/checkdigit/memoize#readme",
   "bugs": {
@@ -37,11 +37,11 @@
     "build:dist-mjs": "node -e \"require('node:fs').rmSync('dist-mjs', { recursive: true, force: true })\" && npx builder --type=module --sourceMap --outDir=dist-mjs && node dist-mjs/index.mjs",
     "build:dist-types": "node -e \"require('node:fs').rmSync('dist-types', { recursive: true, force: true })\" && npx builder --type=types --outDir=dist-types",
     "ci:compile": "tsc --noEmit",
-    "ci:coverage": "node -e \"const fs = require('node:fs'); fs.rmSync('coverage', { recursive: true, force: true }); fs.mkdirSync('coverage')\" && node --test-timeout 600000 --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test \"src/**/*.spec.ts\"",
+    "ci:coverage": "node -e \"const fs = require('node:fs'); fs.rmSync('coverage', { recursive: true, force: true }); fs.mkdirSync('coverage')\" && node --test-timeout 600000 --experimental-test-coverage --test-coverage-include-all --test-coverage-include=\"src/**/*.ts\" --test-coverage-exclude=\"**/*.spec.ts\" --test-coverage-exclude=\"**/*.test.ts\" --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test \"src/**/*.spec.ts\"",
     "ci:lint": "npm run lint",
     "ci:style": "npm run prettier",
-    "ci:test": "node --pending-deprecation --throw-deprecation --test-timeout 600000 --test \"src/**/*.spec.ts\"",
-    "coverage": "node --test-timeout 600000 --experimental-test-coverage --test \"src/**/*.spec.ts\"",
+    "ci:test": "node --pending-deprecation --throw-deprecation --test-timeout 600000 --test-randomize --test \"src/**/*.spec.ts\"",
+    "coverage": "node --test-timeout 600000 --experimental-test-coverage --test-coverage-include-all --test-coverage-include=\"src/**/*.ts\" --test-coverage-exclude=\"**/*.spec.ts\" --test-coverage-exclude=\"**/*.test.ts\" --test \"src/**/*.spec.ts\"",
     "lint": "eslint --max-warnings 0 .",
     "lint:fix": "eslint . --fix",
     "prepublishOnly": "npm run build:dist-types && npm run build:dist-mjs",
@@ -53,9 +53,10 @@
   "devDependencies": {
     "@checkdigit/eslint-config": "^12.3.0",
     "@checkdigit/prettier-config": "^8.4.0",
-    "@checkdigit/typescript-config": "^10.2.2"
+    "@checkdigit/typescript-config": "^10.2.2",
+    "lru-cache": "^11.5.3"
   },
   "engines": {
-    "node": ">=24.21.0"
+    "node": ">=26.13.0"
   }
 }
